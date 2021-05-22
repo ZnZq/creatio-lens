@@ -49,6 +49,7 @@ class CreatioLensCore {
 			await this.getDependencyRoot(),
 			await this.getMixinRoot(),
 			await this.getMessageRoot(),
+			await this.getAttributeRoot(),
 		].filter(value => value !== null);
 	}
 
@@ -129,6 +130,34 @@ class CreatioLensCore {
 					if (helper.getPropertyName(node.node) === "messages") {
 						if (node.node.value.type === "ObjectExpression") {
 							resolve(new types.MessageRootItem(
+								// @ts-ignore
+								node.node.value.properties.filter(prop => prop.type === "ObjectProperty")
+							));
+						}
+					}
+				}
+			});
+
+			resolve(null);
+		});
+	}
+
+    /** @returns {Promise<types.AttributeRootItem?>} */
+	async getAttributeRoot() {
+		if (!this.ast) {
+			return Promise.resolve(null);
+		}
+
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(node) {
+					if (node.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(node.node) === "attributes") {
+						if (node.node.value.type === "ObjectExpression") {
+							resolve(new types.AttributeRootItem(
 								// @ts-ignore
 								node.node.value.properties.filter(prop => prop.type === "ObjectProperty")
 							));

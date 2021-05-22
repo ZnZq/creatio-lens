@@ -242,9 +242,51 @@ class MessageItem extends SchemaItem {
 
 /** @EndRegion Message */
 
+/** @Region Attribute */
+
+class AttributeRootItem extends SchemaItem {
+	/** @type {Array<babelTypes.ObjectProperty>} */
+	properties = null;
+
+	/**
+	 * @param {Array<babelTypes.ObjectProperty>} properties
+	 */
+	constructor(properties) {
+		super("Attributes");
+		this.properties = properties;
+	}
+
+	/** @returns {Array<AttributeItem>} */
+	getChildren() {
+		return this.properties.map(prop => new AttributeItem(prop));
+	}
+
+	getHasChildren() {
+		return this.properties.length > 0;
+	}
+}
+
+class AttributeItem extends SchemaItem {
+	/** @type {babelTypes.ObjectProperty} */
+	attribute = null;
+
+	/**
+	 * @param {babelTypes.ObjectProperty} attribute
+	 */
+	constructor(attribute) {
+		super(attribute.key.type === "Identifier" && attribute.key.name || attribute.key.type === "StringLiteral" && attribute.key.value);
+
+		this.attribute = attribute;
+		this.location = attribute.loc;
+	}
+}
+
+/** @EndRegion Attribute */
+
 module.exports = {
 	SchemaItem,
 	DependencyRootItem,
 	MixinRootItem,
-	MessageRootItem
+	MessageRootItem,
+    AttributeRootItem
 };
