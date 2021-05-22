@@ -1,34 +1,49 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+const core = require('./core/creatio-lens-core');
+const { ResourceHoverViewer } = require('./src/VSCodeWrapper/ResourceHoverViewer');
+const { SchemaTreeViewer } = require('./src/VSCodeWrapper/SchemaTreeViewer');
 
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
+async function activate(context) {
+	await core.activate();
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "creatio-lens" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('creatio-lens.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+	const editor = vscode.window.activeTextEditor;
+	var isValid = editor?.document?.languageId === "javascript";
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Creatio Lens!');
-	});
+	if (isValid) {
+		core.updateAST(editor.document.getText());
+	}
 
-	context.subscriptions.push(disposable);
+	vscode.workspace.onDidChangeTextDocument(event => {
+		if (event.contentChanges.length === 0) {
+			return;
+		}
+
+		const activeEditor = vscode.window.activeTextEditor;
+		const isValid = activeEditor
+			&& event.document === activeEditor.document
+			&& event.document.languageId === "javascript";
+
+		core.updateAST(isValid ? event.document.getText() : null);
+	}, null, context.subscriptions);
+
+	vscode.window.onDidChangeActiveTextEditor(editor => {
+		var isValid = editor?.document?.languageId === "javascript";
+
+		core.updateAST(isValid ? editor.document.getText() : null);
+	}, null, context.subscriptions);
+
+	new ResourceHoverViewer();
+	new SchemaTreeViewer(context);
 }
 
-// this method is called when your extension is deactivated
-function deactivate() {}
+async function deactivate() {
+	await core.deactivate();
+}
 
 module.exports = {
 	activate,

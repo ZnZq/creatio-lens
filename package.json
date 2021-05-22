@@ -3,6 +3,7 @@
 	"displayName": "Creatio Lens",
 	"description": "",
 	"version": "0.0.1",
+	"publisher": "ZnZ",
 	"engines": {
 		"vscode": "^1.56.0"
 	},
@@ -10,16 +11,33 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:creatio-lens.helloWorld"
+		"*"
 	],
 	"main": "./extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "creatio-lens.helloWorld",
-				"title": "Hello World"
+				"command": "schemaTreeViewer.refresh",
+				"title": "Refresh Schema Tree Viewer"
+			},
+			{
+				"command": "schemaTreeViewer.reveal",
+				"title": "Schema Tree Viewer reveal"
 			}
-		]
+		],
+		"views": {
+			"explorer": [
+				{
+					"id": "SchemaTreeViewer",
+					"name": "Schema Tree Viewer"
+				}
+			]
+		},
+		"contributes": {
+			"javascript": {
+			  	"customData": ["./constants.javascript-data.json"]
+			}
+		}
 	},
 	"scripts": {
 		"lint": "eslint .",
@@ -29,12 +47,18 @@
 	"devDependencies": {
 		"@types/vscode": "^1.56.0",
 		"@types/glob": "^7.1.3",
-		"@types/mocha": "^8.0.4",
-		"@types/node": "^12.11.7",
-		"eslint": "^7.19.0",
-		"glob": "^7.1.6",
-		"mocha": "^8.2.1",
-		"typescript": "^4.1.3",
-		"vscode-test": "^1.5.0"
+		"@types/mocha": "^8.2.2",
+		"@types/node": "^15.6.0",
+		"eslint": "^7.27.0",
+		"glob": "^7.1.7",
+		"mocha": "^8.4.0",
+		"typescript": "^4.2.4",
+		"vscode-test": "^1.5.2"
+	},
+	"dependencies": {
+		"@babel/parser": "^7.14.3",
+		"@babel/traverse": "^7.14.2",
+		"html-entities": "^2.3.2",
+		"threads": "^1.6.4"
 	}
 }
