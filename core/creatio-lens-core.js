@@ -8,6 +8,7 @@ const fs = require("fs");
 const types = require("./typedef");
 const { Subject } = require("threads/observable");
 const entities = require("html-entities");
+const helper = require("./creatio-lens-helper");
 
 /** @type {Object.<string, types.Document>} */
 const documents = {};
@@ -45,9 +46,10 @@ class CreatioLensCore {
 	/** @returns {Promise<Array<types.SchemaItem>>} */
 	async getSchemaTreeRoots() {
 		return [
-            await this.getDependencyRoot(),
-            await this.getMixinRoot()
-        ].filter(value => value !== null);
+			await this.getDependencyRoot(),
+			await this.getMixinRoot(),
+			await this.getMessageRoot(),
+		].filter(value => value !== null);
 	}
 
 	/** @returns {Promise<types.DependencyRootItem?>} */
@@ -57,7 +59,6 @@ class CreatioLensCore {
 		}
 
 		return new Promise(resolve => {
-
 			traverse.default(this.ast, {
 				ArrayExpression(node) {
 					const parent = node.parent;
@@ -79,6 +80,8 @@ class CreatioLensCore {
 					}
 				}
 			});
+
+			resolve(null);
 		});
 	}
 
@@ -88,39 +91,54 @@ class CreatioLensCore {
 			return Promise.resolve(null);
 		}
 
-		const scope = this;
-
 		return new Promise(resolve => {
 			traverse.default(this.ast, {
 				ObjectProperty(node) {
-					if (scope.getPropertyName(node.node) === "mixins") {
+					if (node.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(node.node) === "mixins") {
 						if (node.node.value.type === "ObjectExpression") {
 							resolve(new types.MixinRootItem(
-                                // @ts-ignore
-                                node.node.value.properties.filter(prop => prop.type === "ObjectProperty")
-                            ));
+								// @ts-ignore
+								node.node.value.properties.filter(prop => prop.type === "ObjectProperty")
+							));
 						}
 					}
 				}
 			});
+
+			resolve(null);
 		});
 	}
 
-	/**
-	 * @returns {string}
-	 * @param {babelTypes.ObjectProperty} property
-	 */
-	getPropertyName(property) {
-		switch (property.key.type) {
-			case "Identifier": {
-				return property.key.name;
-			}
-			case "StringLiteral": {
-				return property.key.value;
-			}
+	/** @returns {Promise<types.MessageRootItem?>} */
+	async getMessageRoot() {
+		if (!this.ast) {
+			return Promise.resolve(null);
 		}
 
-		return "";
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(node) {
+					if (node.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(node.node) === "messages") {
+						if (node.node.value.type === "ObjectExpression") {
+							resolve(new types.MessageRootItem(
+								// @ts-ignore
+								node.node.value.properties.filter(prop => prop.type === "ObjectProperty")
+							));
+						}
+					}
+				}
+			});
+
+			resolve(null);
+		});
 	}
 
 	/** @param {string} script */
@@ -224,7 +242,7 @@ class CreatioLensCore {
 			return [{
 				key: "unknown",
 				value: "Ресурс родителя / не известный ресурс"
-        }];
+		}];
 		}
 
 		var values = [];
@@ -285,5 +303,4 @@ class CreatioLensCore {
 	}
 }
 
-const core = new CreatioLensCore();
-module.exports = core;
+module.exports = new CreatioLensCore();

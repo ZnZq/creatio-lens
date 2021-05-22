@@ -2,7 +2,6 @@ const vscode = require('vscode');
 const types = require("../../core/typedef");
 const babelTypes = require("@babel/types");
 const core = require("../../core/creatio-lens-core");
-const { type } = require('os');
 
 class SchemaTreeItem extends vscode.TreeItem {
 	/** @type {types.SchemaItem} */
