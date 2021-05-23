@@ -8,9 +8,9 @@ const { UpdateDescriptor } = require('./src/VSCodeWrapper/UpdateDescriptor');
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
+async function activate(context) {
 	console.log('Congratulations, your extension "creatio-lens" is now active!');
-	core.activate();
+	await core.activate();
 	core.onError.subscribe(error => vscode.window.showErrorMessage(error.toString()));
 
 	new ResourceHoverViewer();
@@ -18,7 +18,7 @@ function activate(context) {
 	new SchemaTreeViewer(context);
 	new ConstantHighlight();
 
-	initUpdateAST(context);
+	await initUpdateAST(context);
 }
 
 function deactivate() {
@@ -28,15 +28,15 @@ function deactivate() {
 /**
  * @param {vscode.ExtensionContext} context
  */
-function initUpdateAST(context) {
+async function initUpdateAST(context) {
 	const editor = vscode.window.activeTextEditor;
 	var isValid = editor?.document?.languageId === "javascript";
 
 	if (isValid) {
-		core.updateAST(editor.document.uri.fsPath, editor.document.getText());
+		await core.updateAST(editor.document.uri.fsPath, editor.document.getText());
 	}
 
-	vscode.workspace.onDidChangeTextDocument(event => {
+	vscode.workspace.onDidChangeTextDocument(async event => {
 		if (event.contentChanges.length === 0) {
 			return;
 		}
@@ -47,21 +47,20 @@ function initUpdateAST(context) {
 			&& event.document.languageId === "javascript";
 
 		if (isValid) {
-			core.updateAST(event.document.uri.fsPath, event.document.getText());
+			return await core.updateAST(event.document.uri.fsPath, event.document.getText());
 		}
 
-		core.updateAST(null, null);
+		await core.updateAST(null, null);
 	}, null, context.subscriptions);
 
-	vscode.window.onDidChangeActiveTextEditor(editor => {
+	vscode.window.onDidChangeActiveTextEditor(async editor => {
 		var isValid = editor?.document?.languageId === "javascript";
 
 		if (isValid) {
-			core.updateAST(editor.document.uri.fsPath, editor.document.getText());
-			return;
+			return await core.updateAST(editor.document.uri.fsPath, editor.document.getText());
 		}
 
-		core.updateAST(null, null);
+		await core.updateAST(null, null);
 	}, null, context.subscriptions);
 }
 

@@ -15,9 +15,14 @@ const traverse = require("@babel/traverse");
  * @typedef {object} Highlight
  * @property {string} name
  * @property {{line: number, column: number}} location
+ * @property {Object.<string, any>} props
  */
 
 class HighlightRule {
+	/** @type {string} */
+	// @ts-ignore
+	type = this.__proto__.constructor.name;
+
 	/** @type {string} */
 	attribute = null;
 
@@ -28,14 +33,12 @@ class HighlightRule {
 	parent = null;
 
 	/**
-	 * @param {string} attribute
-	 * @param {Object.<string, number>} constantMap
-	 * @param {string|Array<string>} [parent]
+	 * @param {{ attribute: string; constantMap: { [x: string]: number; }; parent?: string | string[]; }} config
 	 */
-	constructor(attribute, constantMap, parent = null) {
-		this.attribute = attribute;
-		this.constantMap = constantMap;
-		this.parent = parent;
+	constructor(config) {
+		this.attribute = config.attribute;
+		this.constantMap = config.constantMap;
+		this.parent = config.parent;
 	}
 
 	/**
@@ -72,14 +75,19 @@ class HighlightRule {
 
 		return {
 			name: text,
-			location: path.node.loc.end
+			location: path.node.loc.end,
+			props: {}
 		};
 	}
 }
 
 class HighlightBusinessRule extends HighlightRule {
 	constructor() {
-		super(null, null, "businessRules");
+		super({
+			parent: "businessRules",
+			constantMap: null,
+			attribute: null
+		});
 	}
 
 	/**
@@ -116,7 +124,8 @@ class HighlightBusinessRule extends HighlightRule {
 
 		return {
 			name: description,
-			location: object.loc.start
+			location: object.loc.start,
+			props: {}
 		};
 	}
 
@@ -165,6 +174,10 @@ class HighlightBusinessRule extends HighlightRule {
 
 class SchemaItem {
 	/** @type {string} */
+	// @ts-ignore
+	type = this.__proto__.constructor.name;
+
+	/** @type {string} */
 	name = null;
 
 	/** @type {babelTypes.SourceLocation} */
@@ -174,14 +187,10 @@ class SchemaItem {
 	tooltip = null;
 
 	/**
-	 * @param {string} name
-	 * @param {babelTypes.SourceLocation} [location]
-	 * @param {string} [tooltip]
+	 * @param {{name: string, location?: babelTypes.SourceLocation, tooltip?: string}} config
 	 */
-	constructor(name, location, tooltip = null) {
-		this.name = name;
-		this.location = location;
-		this.tooltip = tooltip;
+	constructor(config) {
+		Object.assign(this, config);
 	}
 
 	/** @returns {Array<SchemaItem>} */
@@ -205,14 +214,13 @@ class DependencyRootItem extends SchemaItem {
 	identifiers = null;
 
 	/**
-	 * @param {Array<babelTypes.StringLiteral>} dependencies
-	 * @param {Array<babelTypes.Identifier>} identifiers
+	 * @param {{dependencies: Array<babelTypes.StringLiteral>, identifiers: Array<babelTypes.Identifier>}} config
 	 */
-	constructor(dependencies, identifiers) {
-		super("Dependencies");
+	constructor(config) {
+		super({ name: "Dependencies" });
 
-		this.dependencies = dependencies;
-		this.identifiers = identifiers;
+		this.dependencies = config.dependencies;
+		this.identifiers = config.identifiers;
 	}
 
 	/** @returns {Array<DependencyItem>} */
@@ -239,7 +247,7 @@ class DependencyItem extends SchemaItem {
 	 * @param {babelTypes.Identifier} identifier
 	 */
 	constructor(dependency, identifier) {
-		super(dependency.value);
+		super({ name: dependency.value });
 		this.tooltip = identifier?.name || Constants.defaultValue;
 
 		this.dependency = dependency;
@@ -258,11 +266,11 @@ class MixinRootItem extends SchemaItem {
 	properties = null;
 
 	/**
-	 * @param {Array<babelTypes.ObjectProperty>} properties
+	 * @param {{ properties: babelTypes.ObjectProperty[]; }} config
 	 */
-	constructor(properties) {
-		super("Mixins");
-		this.properties = properties;
+	constructor(config) {
+		super({ name: "Mixins" });
+		this.properties = config.properties;
 	}
 
 	/** @returns {Array<MixinItem>} */
@@ -283,7 +291,9 @@ class MixinItem extends SchemaItem {
 	 * @param {babelTypes.ObjectProperty} mixin
 	 */
 	constructor(mixin) {
-		super(mixin.key.type === "Identifier" && mixin.key.name || mixin.key.type === "StringLiteral" && mixin.key.value);
+		super({
+			name: mixin.key.type === "Identifier" && mixin.key.name || mixin.key.type === "StringLiteral" && mixin.key.value
+		});
 
 		this.tooltip = mixin.value.type === "StringLiteral" && mixin.value.value;
 		this.mixin = mixin;
@@ -303,11 +313,11 @@ class MessageRootItem extends SchemaItem {
 	directions = null;
 
 	/**
-	 * @param {Array<babelTypes.ObjectProperty>} messages
+	 * @param {{ messages: babelTypes.ObjectProperty[]; }} config
 	 */
-	constructor(messages) {
-		super("Messages");
-		this.messages = messages;
+	constructor(config) {
+		super({ name: "Messages" });
+		this.messages = config.messages;
 		this._init();
 	}
 
@@ -339,7 +349,7 @@ class MessageDirectionItem extends SchemaItem {
 	 * @param {Array<babelTypes.ObjectProperty>} messages
 	 */
 	constructor(mode, messages) {
-		super(mode);
+		super({ name: mode });
 
 		this.messages = messages.filter(message => {
 			if (message.value.type !== "ObjectExpression") {
@@ -376,7 +386,9 @@ class MessageItem extends SchemaItem {
 	 * @param {babelTypes.ObjectProperty} message
 	 */
 	constructor(message) {
-		super(message.key.type === "Identifier" && message.key.name || message.key.type === "StringLiteral" && message.key.value);
+		super({
+			name: message.key.type === "Identifier" && message.key.name || message.key.type === "StringLiteral" && message.key.value
+		});
 
 		this.tooltip = message.value.type === "StringLiteral" && message.value.value;
 		this.message = message;
@@ -393,11 +405,11 @@ class AttributeRootItem extends SchemaItem {
 	properties = null;
 
 	/**
-	 * @param {Array<babelTypes.ObjectProperty>} properties
+	 * @param {{ properties: babelTypes.ObjectProperty[]; }} config
 	 */
-	constructor(properties) {
-		super("Attributes");
-		this.properties = properties;
+	constructor(config) {
+		super({ name: "Attributes" });
+		this.properties = config.properties;
 	}
 
 	/** @returns {Array<AttributeItem>} */
@@ -418,7 +430,9 @@ class AttributeItem extends SchemaItem {
 	 * @param {babelTypes.ObjectProperty} attribute
 	 */
 	constructor(attribute) {
-		super(attribute.key.type === "Identifier" && attribute.key.name || attribute.key.type === "StringLiteral" && attribute.key.value);
+		super({
+			name: attribute.key.type === "Identifier" && attribute.key.name || attribute.key.type === "StringLiteral" && attribute.key.value
+		});
 
 		this.attribute = attribute;
 		this.location = attribute.loc;
@@ -437,13 +451,12 @@ class DetailRootItem extends SchemaItem {
 	filePath = null;
 
 	/**
-	 * @param {string} filePath
-	 * @param {Array<babelTypes.ObjectProperty>} properties
+	 * @param {{ properties: babelTypes.ObjectProperty[]; filePath: string; }} config
 	 */
-	constructor(filePath, properties) {
-		super("Details");
-		this.properties = properties;
-		this.filePath = filePath;
+	constructor(config) {
+		super({ name: "Details" });
+		this.properties = config.properties;
+		this.filePath = config.filePath;
 	}
 
 	/** @returns {Array<DetailItem>} */
@@ -465,7 +478,9 @@ class DetailItem extends SchemaItem {
 	 * @param {babelTypes.ObjectProperty} detail
 	 */
 	constructor(filePath, detail) {
-		super(detail.key.type === "Identifier" && detail.key.name || detail.key.type === "StringLiteral" && detail.key.value);
+		super({
+			name: detail.key.type === "Identifier" && detail.key.name || detail.key.type === "StringLiteral" && detail.key.value
+		});
 
 		this.detail = detail;
 		this.location = detail.loc;
@@ -505,13 +520,12 @@ class DiffRootItem extends SchemaItem {
 	operations = null;
 
 	/**
-	 * @param {string} filePath
-	 * @param {Array<babelTypes.ObjectExpression>} objects
+	 * @param {{ objects: babelTypes.ObjectExpression[]; filePath: string; }} config
 	 */
-	constructor(filePath, objects) {
-		super("Diff");
-		this.objects = objects;
-		this.filePath = filePath;
+	constructor(config) {
+		super({ name: "Diff" });
+		this.objects = config.objects;
+		this.filePath = config.filePath;
 
 		this._init();
 	}
@@ -557,7 +571,7 @@ class DiffOperationItem extends SchemaItem {
 	 * @param {Array<babelTypes.ObjectExpression>} objects
 	 */
 	constructor(operation, filePath, objects) {
-		super(operation);
+		super({ name: operation });
 		this.objects = objects;
 		this.operation = operation;
 		this.filePath = filePath;
@@ -619,7 +633,7 @@ class DiffParentItem extends SchemaItem {
 	 * @param {DiffOperationItem} operationItem
 	 */
 	constructor(name, filePath, operationItem) {
-		super(name);
+		super({ name });
 
 		this.filePath = filePath;
 		this.operationItem = operationItem;
@@ -665,7 +679,9 @@ class DiffItem extends SchemaItem {
 	 * @param {babelTypes.ObjectExpression} diff
 	 */
 	constructor(filePath, operationItem, diff) {
-		super(helper.getPropertyStringValue(diff, "name"));
+		super({
+			name: helper.getPropertyStringValue(diff, "name")
+		});
 
 		this.diff = diff;
 		this.filePath = filePath;
@@ -684,12 +700,12 @@ class DiffItem extends SchemaItem {
 	}
 
 	_initTooltip() {
-		const value = helper.getPropertyValue(this.diff, "value");
-		if (value?.type !== "ObjectExpression") {
+		const values = helper.getPropertyValue(this.diff, "values");
+		if (values?.type !== "ObjectExpression") {
 			return;
 		}
 
-		const captionValue = helper.getPropertyValue(value, "captionValue");
+		const captionValue = helper.getPropertyValue(values, "caption");
 		if (!captionValue) {
 			return;
 		}
@@ -717,7 +733,7 @@ class DiffItem extends SchemaItem {
 
 				resourceValues = helper.getResourseValue({
 					filePath: this.filePath,
-					resourceName: bindTo.value
+					resourceName: _.last(bindTo.value.split("."))
 				});
 				break;
 			}
@@ -739,7 +755,20 @@ class DiffItem extends SchemaItem {
 
 /** @EndRegion Diff */
 
+/**
+ * @param {{ type: string; }} object
+ */
+function create(object) {
+	if (typeof object !== 'object') {
+		return object;
+	}
+
+	const instance = eval(`new ${object.type}(object)`);
+	return instance;
+}
+
 module.exports = {
+	create,
 	HighlightRule,
 	HighlightBusinessRule,
 	SchemaItem,

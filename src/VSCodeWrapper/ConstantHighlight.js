@@ -1,30 +1,66 @@
 const vscode = require('vscode');
 const core = require("../../core/creatio-lens-core");
 const types = require("../../core/typedef");
+const _ = require("underscore");
 
 class ConstantHighlight {
-    /** @type {Array<vscode.TextEditorDecorationType>} */
+	/** @type {Array<vscode.TextEditorDecorationType>} */
 	decorations = [];
 
+	/** @type {Array<types.Highlight>} */
+	highlights = [];
+
+	/** @type {Array<vscode.Range>} */
+	ranges = [];
+
+	/** @type {NodeJS.Timeout} */
+	timeout = null;
+
 	constructor() {
-        core.onBeforeUpdateAST.subscribe(_ => this.clearDecorations());
-        core.onAfterUpdateAST.subscribe(_ => this.draw());
+		core.onBeforeUpdateAST.subscribe(_ => this.clearDecorations());
+		core.onAfterUpdateAST.subscribe(_ => this.updateHighlights());
+
+		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
+			this.ranges = [...event.visibleRanges];
+			this.draw();
+		});
+
+		this.ranges = [...vscode.window.activeTextEditor.visibleRanges];
+		this.draw();
 	}
 
-    async draw() {
-        const highlights = await core.getConstantHighlights()
-        if (!highlights) {
-            return;
-        }
+	draw() {
+		const hasRange = this.ranges?.length > 0;
+		if (!hasRange || this.highlights.length === 0) {
+			return;
+		}
 
-        highlights.forEach(highlight => this.addDecorationWithText(highlight));
-    }
+		const highlights = this.highlights.filter(highlight => {
+			return !highlight.props.draweed && _.any(this.ranges, range => {
+				const startLine = range.start.line - 10;
+				const endLine = range.end.line + 10;
+
+				return startLine <= highlight.location.line && highlight.location.line <= endLine;
+			});
+		});
+
+		highlights.forEach(highlight => this.addDecorationWithText(highlight));
+	}
+
+	async updateHighlights() {
+		this.highlights = await core.getConstantHighlights();
+		this.draw();
+	}
 
 	/**
 	 * @param {types.Highlight} highlight
 	 */
 	addDecorationWithText(highlight) {
-        const activeTextEditor = vscode.window.activeTextEditor;
+		if (highlight.props.draweed) {
+			return;
+		}
+
+		const activeTextEditor = vscode.window.activeTextEditor;
 
 		if (!activeTextEditor || !highlight.name) {
 			return;
@@ -44,6 +80,7 @@ class ConstantHighlight {
 		);
 
 		activeTextEditor.setDecorations(decorationType, [{ range }]);
+		highlight.props.draweed = true;
 		this.decorations.push(decorationType);
 	};
 

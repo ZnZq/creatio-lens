@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const types = require("../../core/typedef");
 const babelTypes = require("@babel/types");
 const core = require("../../core/creatio-lens-core");
+const helper = require("../../core/creatio-lens-helper");
 
 class SchemaTreeItem extends vscode.TreeItem {
 	/** @type {types.SchemaItem} */
@@ -96,7 +97,7 @@ class SchemaTreeViewer {
 		if (!element) {
 			var roots = await core.getSchemaTreeRoots();
 
-			return roots.map(root => new SchemaTreeItem(root));
+			return roots.map(root => new SchemaTreeItem(types.create(root)));
 		}
 
 		if (element instanceof SchemaTreeItem) {

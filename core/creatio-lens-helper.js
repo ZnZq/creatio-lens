@@ -8,7 +8,7 @@ const traverse = require("@babel/traverse");
 module.exports = {
 	/** @type {Object.<string, types.Resource>} */
 	resourceCache: {},
-	
+
 	/**
 	 * @param {Object.<string, number>} object
 	 * @param {number} value
