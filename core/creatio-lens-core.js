@@ -56,6 +56,7 @@ class CreatioLensCore {
 				await this.getMessageRoot(),
 				await this.getAttributeRoot(),
 				await this.getDetailRoot(),
+				await this.getBusinessRuleRoot(),
 				await this.getDiffRoot(),
 			];
 		} catch (error) {
@@ -141,6 +142,20 @@ class CreatioLensCore {
 			filePath: this.filePath,
 			properties
 		});
+	}
+
+	/** @returns {Promise<types.BusinessRuleRootItem | null>} */
+	async getBusinessRuleRoot() {
+		if (!this.ast) {
+			return null;
+		}
+
+		const properties = await this.getSchemaProperty("businessRules");
+		if (!properties) {
+			return null;
+		}
+
+		return new types.BusinessRuleRootItem({properties});
 	}
 
 	/** @returns {Promise<types.DiffRootItem | null>} */

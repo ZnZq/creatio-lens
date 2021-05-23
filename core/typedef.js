@@ -130,12 +130,12 @@ class HighlightBusinessRule extends HighlightRule {
 	}
 
 	/** 
-	 * @param {traverse.NodePath<babelTypes.Node>} path
+	 * @param {traverse.NodePath<babelTypes.Node> | babelTypes.Node} path
 	 * @param {babelTypes.ObjectExpression} object
 	 * @returns {string}
 	 */
 	static getObjectDescription(path, object) {
-		const ruleProperty = path.parent;
+		const ruleProperty = path instanceof traverse.NodePath ? path.parent : path;
 		if (ruleProperty.type !== "ObjectProperty") {
 			return Constants.defaultValue;
 		}
@@ -507,6 +507,85 @@ class DetailItem extends SchemaItem {
 
 /** @EndRegion Detail */
 
+/** @Region BusinessRule */
+
+class BusinessRuleRootItem extends SchemaItem {
+	/** @type {Array<babelTypes.ObjectProperty>} */
+	properties = null;
+
+	/**
+	 * @param {{ properties: babelTypes.ObjectProperty[] }} config
+	 */
+	constructor(config) {
+		super({ name: "BusinessRules" });
+		this.properties = config.properties;
+	}
+
+	/** @returns {Array<BusinessRuleItem>} */
+	getChildren() {
+		return this.properties.map(prop => new BusinessRuleItem(prop));
+	}
+
+	getHasChildren() {
+		return this.properties.length > 0;
+	}
+}
+
+class BusinessRuleItem extends SchemaItem {
+	/** @type {babelTypes.ObjectProperty} */
+	businessRule = null;
+
+	/** @type {Array<SchemaItem>} */
+	children = [];
+
+	/**
+	 * @param {babelTypes.ObjectProperty} businessRule
+	 */
+	constructor(businessRule) {
+		super({
+			name: businessRule.key.type === "Identifier" && businessRule.key.name || businessRule.key.type === "StringLiteral" && businessRule.key.value
+		});
+
+		this.businessRule = businessRule;
+		this.location = businessRule.loc;
+
+		this._init();
+	}
+
+	_init() {
+		if (this.businessRule.value.type !== "ObjectExpression") {
+			return;
+		}
+
+		this.children = this.businessRule.value.properties.map(prop => {
+			if (prop.type !== "ObjectProperty") {
+				return;
+			}
+			if (prop.value.type !== "ObjectExpression") {
+				return;
+			}
+
+			return new SchemaItem({
+				name: HighlightBusinessRule.getObjectDescription(
+					prop, prop.value
+				),
+				location: prop.value.loc
+			});
+		});
+	}
+
+	/** @returns {Array<SchemaItem>} */
+	getChildren() {
+		return this.children;
+	}
+
+	getHasChildren() {
+		return this.children.length > 0;
+	}
+}
+
+/** @EndRegion BusinessRule */
+
 /** @Region Diff */
 
 class DiffRootItem extends SchemaItem {
@@ -777,5 +856,6 @@ module.exports = {
 	MessageRootItem,
 	AttributeRootItem,
 	DetailRootItem,
+	BusinessRuleRootItem,
 	DiffRootItem,
 };
