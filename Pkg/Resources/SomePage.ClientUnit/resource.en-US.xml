@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Resources Culture="en-US">
+	<Group Type="String">
+		<Items>
+			<Item Name="Caption" Value="Page :)" />
+			<Item Name="LocalizableStrings.SomeResource1.Value" Value="Some resource #1" />
+			<Item Name="LocalizableStrings.SomeResource2.Value" Value="Some resource #2" />
+			<Item Name="LocalizableStrings.SomeResource3.Value" Value="Some resource #3" />
+			<Item Name="LocalizableStrings.FileDetailCaption.Value" Value="File detail caption :)" />
+			<Item Name="LocalizableStrings.SomeButton1Caption.Value" Value="Button 1" />
+			<Item Name="LocalizableStrings.SomeButton2Caption.Value" Value="Button 2" />
+		</Items>
+	</Group>
+</Resources>

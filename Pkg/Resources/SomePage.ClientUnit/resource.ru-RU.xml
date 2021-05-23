@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Resources Culture="ru-RU">
+	<Group Type="String">
+		<Items>
+			<Item Name="Caption" Value="Карточка :)" />
+			<Item Name="LocalizableStrings.SomeResource1.Value" Value="Какой-то ресурс №1" />
+			<Item Name="LocalizableStrings.SomeResource2.Value" Value="Какой-то ресурс №2" />
+			<Item Name="LocalizableStrings.SomeResource3.Value" Value="Какой-то ресурс №3" />
+			<Item Name="LocalizableStrings.FileDetailCaption.Value" Value="Заголовок детали с файлами :)" />
+			<Item Name="LocalizableStrings.SomeButton1Caption.Value" Value="Кнопка 1" />
+			<Item Name="LocalizableStrings.SomeButton2Caption.Value" Value="Кнопка 2" />
+		</Items>
+	</Group>
+</Resources>
