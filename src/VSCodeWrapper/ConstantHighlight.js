@@ -17,7 +17,6 @@ class ConstantHighlight {
 	timeout = null;
 
 	constructor() {
-		core.onBeforeUpdateAST.subscribe(_ => this.clearDecorations());
 		core.onAfterUpdateAST.subscribe(_ => this.updateHighlights());
 
 		vscode.window.onDidChangeTextEditorVisibleRanges(event => {
@@ -48,7 +47,8 @@ class ConstantHighlight {
 	}
 
 	async updateHighlights() {
-		this.highlights = await core.getConstantHighlights();
+		this.clearDecorations();
+		this.highlights = await core.getConstantHighlights() || [];
 		this.draw();
 	}
 
@@ -59,6 +59,7 @@ class ConstantHighlight {
 		if (highlight.props.draweed) {
 			return;
 		}
+		highlight.props.draweed = true;
 
 		const activeTextEditor = vscode.window.activeTextEditor;
 
@@ -80,13 +81,12 @@ class ConstantHighlight {
 		);
 
 		activeTextEditor.setDecorations(decorationType, [{ range }]);
-		highlight.props.draweed = true;
 		this.decorations.push(decorationType);
 	};
 
 	clearDecorations() {
 		this.decorations.forEach(decoration => decoration.dispose());
-		this.decorations.splice(0, this.decorations.length);
+		this.decorations = [];
 	}
 }
 

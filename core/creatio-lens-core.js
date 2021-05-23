@@ -58,7 +58,7 @@ class CreatioLensCore {
 				await this.getDetailRoot(),
 				await this.getBusinessRuleRoot(),
 				await this.getDiffRoot(),
-			];
+			].filter(root => root != null);
 		} catch (error) {
 			this.onError.next(error);
 			return [new types.SchemaItem({
@@ -183,9 +183,7 @@ class CreatioLensCore {
 				}
 
 				this.onAfterUpdateAST.next();
-			} catch (error) {
-				this.onError.next(error);
-			} finally {
+			} catch { } finally {
 				resolve();
 			}
 		});

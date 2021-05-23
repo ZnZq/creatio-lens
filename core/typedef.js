@@ -565,7 +565,7 @@ class BusinessRuleItem extends SchemaItem {
 			}
 
 			return new SchemaItem({
-				name: HighlightBusinessRule.getObjectDescription(prop, prop.value),
+				name: HighlightBusinessRule.getObjectDescription(this.businessRule, prop.value),
 				location: prop.value.loc
 			});
 		});

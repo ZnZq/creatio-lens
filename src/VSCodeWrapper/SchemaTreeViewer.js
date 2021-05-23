@@ -41,6 +41,9 @@ class SchemaTreeItem extends vscode.TreeItem {
 /** @implements {vscode.TreeDataProvider<SchemaTreeItem>} */
 class SchemaTreeViewer {
 
+	/** @type {NodeJS.Timeout} */
+	timeout = null;
+
 	/**
 	 * @param {vscode.ExtensionContext} context
 	 */
@@ -54,7 +57,7 @@ class SchemaTreeViewer {
 		}));
 
 		vscode.commands.registerCommand("schemaTreeViewer.refresh", async () => {
-			this.refresh();
+			this.refresh(false);
 		});
 
 		vscode.commands.registerCommand("schemaTreeViewer.reveal", ( /** @type {babelTypes.SourceLocation} */ location) => {
@@ -79,8 +82,17 @@ class SchemaTreeViewer {
 		core.onAfterUpdateAST.subscribe(() => this.refresh());
 	}
 
-	refresh() {
-		this._onDidChangeTreeData.fire();
+	refresh(withTimeout = true) {
+		if (!withTimeout) {
+			this._onDidChangeTreeData.fire();
+			return;
+		}
+
+		if (this.timeout) {
+			clearTimeout(this.timeout);
+		}
+
+		this.timeout = setTimeout(() => this._onDidChangeTreeData.fire(), 1000);
 	}
 
 	/**

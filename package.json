@@ -41,6 +41,10 @@
 			}
 		}
 	},
+	"repository": {
+        "type": "git",
+        "url": "https://github.com/ZnZq/creatio-lens.git"
+    },
 	"scripts": {
 		"lint": "eslint .",
 		"pretest": "npm run lint",
