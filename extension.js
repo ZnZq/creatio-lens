@@ -40,6 +40,7 @@ async function activate(context) {
 
 		if (isValid) {
 			core.updateAST(editor.document.uri.fsPath, editor.document.getText());
+			return;
 		}
 
 		core.updateAST(null, null);

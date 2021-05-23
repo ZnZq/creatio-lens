@@ -30,6 +30,20 @@ module.exports = {
 	},
 
 	/**
+	 * @param {babelTypes.ObjectExpression} objectExpression
+	 * @param {string} name
+	 */
+	getPropertyStringValue(objectExpression, name) {
+		/** @type {babelTypes.Node} */
+		var value = this.getPropertyValue(objectExpression, name);
+		if (!value || value.type !== "StringLiteral") {
+			return null;
+		}
+
+		return value.value;
+	},
+
+	/**
 	 * @returns {string}
 	 * @param {babelTypes.ObjectProperty} property
 	 */

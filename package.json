@@ -35,7 +35,9 @@
 		},
 		"contributes": {
 			"javascript": {
-			  	"customData": ["./constants.javascript-data.json"]
+				"customData": [
+					"./constants.javascript-data.json"
+				]
 			}
 		}
 	},
@@ -59,6 +61,7 @@
 		"@babel/parser": "^7.14.3",
 		"@babel/traverse": "^7.14.2",
 		"html-entities": "^2.3.2",
-		"threads": "^1.6.4"
+		"threads": "^1.6.4",
+		"underscore": "^1.13.1"
 	}
 }

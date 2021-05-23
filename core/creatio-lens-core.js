@@ -5,12 +5,6 @@ const types = require("./typedef");
 const { Subject } = require("threads/observable");
 const helper = require("./creatio-lens-helper");
 
-/** @type {acorn.Options} */
-const options = {
-	ecmaVersion: "latest",
-	locations: true
-};
-
 class CreatioLensCore {
 
 	/** @type {Subject} */
@@ -44,6 +38,7 @@ class CreatioLensCore {
 			await this.getMessageRoot(),
 			await this.getAttributeRoot(),
 			await this.getDetailRoot(),
+			await this.getDiffRoot(),
 		].filter(value => value !== null);
 	}
 
@@ -195,13 +190,44 @@ class CreatioLensCore {
 		});
 	}
 
+    /** @returns {Promise<types.DiffRootItem?>} */
+	async getDiffRoot() {
+		if (!this.ast) {
+			return Promise.resolve(null);
+		}
+
+        const filePath = this.filePath;
+
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(node) {
+					if (node.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(node.node) === "diff") {
+						if (node.node.value.type === "ArrayExpression") {
+							resolve(new types.DiffRootItem(
+                                filePath,
+								// @ts-ignore
+								node.node.value.elements.filter(obj => obj.type === "ObjectExpression")
+							));
+						}
+					}
+				}
+			});
+
+			resolve(null);
+		});
+	}
+
 	/** @param {string} script */
 	updateAST(filePath, script) {
         this.filePath = filePath;
 		this.beforeUpdateAST.next();
 
 		if (script) {
-			this.ast = parser.parse(script, options);
+			this.ast = parser.parse(script);
 		} else {
 			this.ast = null;
 		}

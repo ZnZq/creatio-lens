@@ -1,15 +1,7 @@
 const babelTypes = require("@babel/types");
 const fs = require("fs");
 const helper = require("./creatio-lens-helper");
-
-/**
- * @typedef {object} Document
- * @property {string} filePath
- * @property {string} descriptorPath
- * @property {fs.FSWatcher} fileWatcher
- * @property {fs.FSWatcher} descriptorWatcher
- * @property {acorn.Node} ast
- */
+const _ = require("underscore");
 
 /**
  * @typedef {object} Resource
@@ -153,7 +145,7 @@ class MessageRootItem extends SchemaItem {
 	/** @type {Array<babelTypes.ObjectProperty>} */
 	messages = null;
 
-    /** @type {Array<MessageDirectionItem>} */
+	/** @type {Array<MessageDirectionItem>} */
 	directions = null;
 
 	/**
@@ -166,10 +158,10 @@ class MessageRootItem extends SchemaItem {
 	}
 
 	_init() {
-        this.directions = [
-            new MessageDirectionItem("SUBSCRIBE", this.messages),
-            new MessageDirectionItem("PUBLISH", this.messages),
-        ];
+		this.directions = [
+			new MessageDirectionItem("SUBSCRIBE", this.messages),
+			new MessageDirectionItem("PUBLISH", this.messages),
+		];
 	}
 
 	/** @returns {Array<MessageDirectionItem>} */
@@ -179,8 +171,8 @@ class MessageRootItem extends SchemaItem {
 
 	getHasChildren() {
 		return this.directions.filter(
-            direction => direction.getHasChildren()
-        ).length > 0;
+			direction => direction.getHasChildren()
+		).length > 0;
 	}
 }
 
@@ -195,26 +187,25 @@ class MessageDirectionItem extends SchemaItem {
 	constructor(mode, messages) {
 		super(mode);
 
-        this.messages = messages.filter(message => {
-            if (message.value.type !== "ObjectExpression") {
-                return false;
-            }
+		this.messages = messages.filter(message => {
+			if (message.value.type !== "ObjectExpression") {
+				return false;
+			}
 
-            /** @type {babelTypes.Node} */
-            const directionValue = helper.getPropertyValue(message.value, "direction");
-            const direction = 
-                directionValue.type === "MemberExpression"
-                && directionValue.property.type === "Identifier"
-                && directionValue.property.name
-                ||
-                directionValue.type === "StringLiteral"
-                && directionValue.value.toUpperCase();
+			/** @type {babelTypes.Node} */
+			const directionValue = helper.getPropertyValue(message.value, "direction");
+			const direction =
+				directionValue.type === "MemberExpression"
+				&& directionValue.property.type === "Identifier"
+				&& directionValue.property.name
+				|| directionValue.type === "StringLiteral"
+				&& directionValue.value.toUpperCase();
 
-            return direction === mode;
-        }).map(message => new MessageItem(message));
+			return direction === mode;
+		}).map(message => new MessageItem(message));
 	}
 
-    /** @returns {Array<MessageItem>} */
+	/** @returns {Array<MessageItem>} */
 	getChildren() {
 		return this.messages;
 	}
@@ -289,17 +280,17 @@ class DetailRootItem extends SchemaItem {
 	/** @type {Array<babelTypes.ObjectProperty>} */
 	properties = null;
 
-    /** @type {string} filePath */
+	/** @type {string} filePath */
 	filePath = null;
 
 	/**
-     * @param {string} filePath
-     * @param {Array<babelTypes.ObjectProperty>} properties
-     */
+	 * @param {string} filePath
+	 * @param {Array<babelTypes.ObjectProperty>} properties
+	 */
 	constructor(filePath, properties) {
 		super("Details");
 		this.properties = properties;
-        this.filePath = filePath;
+		this.filePath = filePath;
 	}
 
 	/** @returns {Array<DetailItem>} */
@@ -317,7 +308,7 @@ class DetailItem extends SchemaItem {
 	detail = null;
 
 	/**
-     * @param {string} filePath
+	 * @param {string} filePath
 	 * @param {babelTypes.ObjectProperty} detail
 	 */
 	constructor(filePath, detail) {
@@ -326,34 +317,284 @@ class DetailItem extends SchemaItem {
 		this.detail = detail;
 		this.location = detail.loc;
 
-        const value = detail.value;
-        if (value.type !== "ObjectExpression") {
-            return;
-        }
+		const value = detail.value;
+		if (value.type !== "ObjectExpression") {
+			return;
+		}
 
-        /** @type {babelTypes.Node} */
-        const captionName = helper.getPropertyValue(value, "captionName");
-        if (!captionName || captionName.type !== "StringLiteral") {
-            return;
-        }
+		/** @type {babelTypes.Node} */
+		const captionName = helper.getPropertyValue(value, "captionName");
+		if (!captionName || captionName.type !== "StringLiteral") {
+			return;
+		}
 
-        var resourceValues = helper.getResourseValue({
-            filePath: filePath,
-            resourceName: captionName.value
-        });
+		var resourceValues = helper.getResourseValue({
+			filePath: filePath,
+			resourceName: captionName.value
+		});
 
-        this.tooltip = resourceValues.map(value => `${value.key}: ${value.value}`)
-            .join("  \n");;
+		this.tooltip = resourceValues.map(value => `${value.key}: ${value.value}`)
+			.join("  \n");;
 	}
 }
 
 /** @EndRegion Detail */
+
+/** @Region Diff */
+
+class DiffRootItem extends SchemaItem {
+	/** @type {Array<babelTypes.ObjectExpression>} */
+	objects = null;
+
+	/** @type {string} */
+	filePath = null;
+
+	/** @type {Array<DiffOperationItem>} */
+	operations = null;
+
+	/**
+	 * @param {string} filePath
+	 * @param {Array<babelTypes.ObjectExpression>} objects
+	 */
+	constructor(filePath, objects) {
+		super("Diff");
+		this.objects = objects;
+		this.filePath = filePath;
+
+		this._init();
+	}
+
+	_init() {
+		this.operations = [
+			new DiffOperationItem("remove", this.filePath, this.objects),
+			new DiffOperationItem("merge", this.filePath, this.objects),
+			new DiffOperationItem("insert", this.filePath, this.objects),
+			new DiffOperationItem("move", this.filePath, this.objects),
+		];
+	}
+
+	/** @returns {Array<DiffOperationItem>} */
+	getChildren() {
+		return _.filter(this.operations, operation => operation.getHasChildren());
+	}
+
+	getHasChildren() {
+		return _.any(this.operations, operation => operation.getHasChildren());
+	}
+}
+
+class DiffOperationItem extends SchemaItem {
+	/** @type {Array<babelTypes.ObjectExpression>} */
+	objects = null;
+
+	/** @type {string} */
+	filePath = null;
+
+	/** @type {string} */
+	operation = null;
+
+	/** @type {Array<{name: string, parentName: string, operation: string, obj: babelTypes.ObjectExpression}>} */
+	preparedDiffs = null;
+
+	/** @type {Array<SchemaItem>} */
+	children = null;
+
+	/**
+	 * @param {"remove" | "merge" | "insert" | "move"} operation
+	 * @param {string} filePath
+	 * @param {Array<babelTypes.ObjectExpression>} objects
+	 */
+	constructor(operation, filePath, objects) {
+		super(operation);
+		this.objects = objects;
+		this.operation = operation;
+		this.filePath = filePath;
+
+		this._init();
+	}
+
+	_init() {
+		this.preparedDiffs = this.objects.filter(obj => {
+			const operation = helper.getPropertyStringValue(obj, "operation");
+
+			return operation && operation === this.operation;
+		}).map(obj => {
+			return {
+				name: helper.getPropertyStringValue(obj, "name"),
+				parentName: helper.getPropertyStringValue(obj, "parentName"),
+				operation: helper.getPropertyStringValue(obj, "operation"),
+				obj: obj
+			};
+		});
+
+        if (this.operation !== "insert") {
+            this.children = this.preparedDiffs.map(
+                obj => new DiffItem(this.filePath, this, obj.obj)
+            );
+        } else {
+            this.children = _.unique(this.preparedDiffs.filter(obj => {
+                    var parent = _.findWhere(this.preparedDiffs, { name: obj.parentName });
+
+                    return parent == null;
+                }), false, obj => obj.parentName)
+                .map(obj => new DiffParentItem(obj.parentName, this.filePath, this));
+        }
+	}
+
+	/** @returns {Array<SchemaItem>} */
+	getChildren() {
+		return this.children;
+	}
+
+	getHasChildren() {
+		return this.children.length > 0;
+	}
+}
+
+class DiffParentItem extends SchemaItem {
+	/** @type {string} */
+	filePath = null;
+
+	/** @type {DiffOperationItem} */
+	operationItem = null;
+
+    /** @type {Array<DiffItem>} */
+    children = null;
+
+	/**
+	 * @param {string} name
+	 * @param {string} filePath
+	 * @param {DiffOperationItem} operationItem
+	 */
+	constructor(name, filePath, operationItem) {
+		super(name);
+
+		this.filePath = filePath;
+		this.operationItem = operationItem;
+
+        this._init();
+	}
+
+    _init() {
+        this.children = _.where(this.operationItem.preparedDiffs, {
+            parentName: this.name
+        }).map(obj => new DiffItem(this.filePath, this.operationItem, obj.obj));
+    }
+
+    /** @returns {Array<DiffItem>} */
+	getChildren() {
+		return this.children;
+	}
+
+	getHasChildren() {
+		return this.children.length > 0;
+	}
+}
+
+class DiffItem extends SchemaItem {
+	/** @type {babelTypes.ObjectExpression} */
+	diff = null;
+
+	/** @type {string} */
+	filePath = null;
+
+	/** @type {string} */
+	parentName = null;
+
+	/** @type {DiffOperationItem} */
+	operationItem = null;
+
+	/** @type {Array<DiffItem>} */
+	children = null;
+
+	/**
+	 * @param {string} filePath
+	 * @param {DiffOperationItem} operationItem
+	 * @param {babelTypes.ObjectExpression} diff
+	 */
+	constructor(filePath, operationItem, diff) {
+		super(helper.getPropertyStringValue(diff, "name"));
+
+		this.diff = diff;
+		this.filePath = filePath;
+		this.operationItem = operationItem;
+		this.location = diff.loc;
+
+		this._init();
+	}
+
+	_init() {
+		this._initTooltip();
+
+		this.children = _.where(this.operationItem.preparedDiffs, {
+			parentName: this.name
+		}).map(obj => new DiffItem(this.filePath, this.operationItem, obj.obj));
+	}
+
+	_initTooltip() {
+		const value = helper.getPropertyValue(this.diff, "value");
+		if (value?.type !== "ObjectExpression") {
+			return;
+		}
+
+		/** @type {babelTypes.Node} */
+		const captionValue = helper.getPropertyValue(value, "captionValue");
+		if (!captionValue) {
+			return;
+		}
+
+		var resourceValues = [];
+
+		switch (captionValue.type) {
+			case "StringLiteral": {
+				this.tooltip = captionValue.value;
+				return;
+			}
+			case "MemberExpression": {
+				resourceValues = helper.getResourseValue({
+					filePath: this.filePath,
+					resourceName: captionValue.property.type === "Identifier"
+						&& captionValue.property.name
+				});
+				break;
+			}
+			case "ObjectExpression": {
+				/** @type {babelTypes.Node} */
+				const bindTo = helper.getPropertyValue(captionValue, "bindTo");
+				if (!bindTo || bindTo.type !== "StringLiteral") {
+					return;
+				}
+
+				resourceValues = helper.getResourseValue({
+					filePath: this.filePath,
+					resourceName: bindTo.value
+				});
+				break;
+			}
+		}
+
+		this.tooltip = resourceValues.map(value => `${value.key}: ${value.value}`)
+			.join("  \n");
+	}
+
+	/** @returns {Array<DiffItem>} */
+	getChildren() {
+		return this.children;
+	}
+
+	getHasChildren() {
+		return this.children.length > 0;
+	}
+}
+
+/** @EndRegion Diff */
 
 module.exports = {
 	SchemaItem,
 	DependencyRootItem,
 	MixinRootItem,
 	MessageRootItem,
-    AttributeRootItem,
-    DetailRootItem,
+	AttributeRootItem,
+	DetailRootItem,
+	DiffRootItem,
 };
