@@ -68,7 +68,7 @@ class SchemaTreeViewer {
 			);
 			var end = new vscode.Position(
 				location.end.line - 1,
-				location.end.column + 1,
+				location.end.column,
 			);
 
 			editor.selection = new vscode.Selection(start, end);

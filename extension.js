@@ -15,7 +15,7 @@ async function activate(context) {
 	var isValid = editor?.document?.languageId === "javascript";
 
 	if (isValid) {
-		core.updateAST(editor.document.getText());
+		core.updateAST(editor.document.uri.fsPath, editor.document.getText());
 	}
 
 	vscode.workspace.onDidChangeTextDocument(event => {
@@ -28,13 +28,21 @@ async function activate(context) {
 			&& event.document === activeEditor.document
 			&& event.document.languageId === "javascript";
 
-		core.updateAST(isValid ? event.document.getText() : null);
+		if (isValid) {
+			core.updateAST(event.document.uri.fsPath, event.document.getText());
+		}
+
+		core.updateAST(null, null);
 	}, null, context.subscriptions);
 
 	vscode.window.onDidChangeActiveTextEditor(editor => {
 		var isValid = editor?.document?.languageId === "javascript";
 
-		core.updateAST(isValid ? editor.document.getText() : null);
+		if (isValid) {
+			core.updateAST(editor.document.uri.fsPath, editor.document.getText());
+		}
+
+		core.updateAST(null, null);
 	}, null, context.subscriptions);
 
 	new ResourceHoverViewer();

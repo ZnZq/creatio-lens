@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const core = require("../../core/creatio-lens-core");
+const helper = require("../../core/creatio-lens-helper");
 
 class ResourceHoverViewer {
 	constructor() {
@@ -10,14 +10,14 @@ class ResourceHoverViewer {
 				}
 
 				var line = document.lineAt(position.line).text;
-				var values = await core.getResourseValue({
+				var values = helper.getResourseValue({
 					filePath: document.uri.fsPath,
 					line: line
 				});
 
 				if (values) {
-                    var hoverText = values.map(value => `${value.key}: ${value.value}`)
-                        .join("  \n");
+					var hoverText = values.map(value => `${value.key}: ${value.value}`)
+						.join("  \n");
 					return Promise.resolve(new vscode.Hover(hoverText));
 				}
 
@@ -28,5 +28,5 @@ class ResourceHoverViewer {
 }
 
 module.exports = {
-    ResourceHoverViewer
+	ResourceHoverViewer
 };

@@ -283,10 +283,77 @@ class AttributeItem extends SchemaItem {
 
 /** @EndRegion Attribute */
 
+/** @Region Detail */
+
+class DetailRootItem extends SchemaItem {
+	/** @type {Array<babelTypes.ObjectProperty>} */
+	properties = null;
+
+    /** @type {string} filePath */
+	filePath = null;
+
+	/**
+     * @param {string} filePath
+     * @param {Array<babelTypes.ObjectProperty>} properties
+     */
+	constructor(filePath, properties) {
+		super("Details");
+		this.properties = properties;
+        this.filePath = filePath;
+	}
+
+	/** @returns {Array<DetailItem>} */
+	getChildren() {
+		return this.properties.map(prop => new DetailItem(this.filePath, prop));
+	}
+
+	getHasChildren() {
+		return this.properties.length > 0;
+	}
+}
+
+class DetailItem extends SchemaItem {
+	/** @type {babelTypes.ObjectProperty} */
+	detail = null;
+
+	/**
+     * @param {string} filePath
+	 * @param {babelTypes.ObjectProperty} detail
+	 */
+	constructor(filePath, detail) {
+		super(detail.key.type === "Identifier" && detail.key.name || detail.key.type === "StringLiteral" && detail.key.value);
+
+		this.detail = detail;
+		this.location = detail.loc;
+
+        const value = detail.value;
+        if (value.type !== "ObjectExpression") {
+            return;
+        }
+
+        /** @type {babelTypes.Node} */
+        const captionName = helper.getPropertyValue(value, "captionName");
+        if (!captionName || captionName.type !== "StringLiteral") {
+            return;
+        }
+
+        var resourceValues = helper.getResourseValue({
+            filePath: filePath,
+            resourceName: captionName.value
+        });
+
+        this.tooltip = resourceValues.map(value => `${value.key}: ${value.value}`)
+            .join("  \n");;
+	}
+}
+
+/** @EndRegion Detail */
+
 module.exports = {
 	SchemaItem,
 	DependencyRootItem,
 	MixinRootItem,
 	MessageRootItem,
-    AttributeRootItem
+    AttributeRootItem,
+    DetailRootItem,
 };
