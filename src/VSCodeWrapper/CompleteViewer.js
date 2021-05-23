@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+const vscode = require("vscode");
 const core = require("../../core/creatio-lens-core");
 const { Terrasoft } = require("../../core/creatio-lens-data");
 
@@ -22,7 +22,7 @@ class CompleteViewer {
     
                 return items.map(value => new vscode.CompletionItem(value));
             }
-        }, '.'));
+        }, "."));
     }
 }
 

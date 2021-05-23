@@ -1,5 +1,5 @@
-const vscode = require('vscode');
-const core = require('../../core/creatio-lens-core');
+const vscode = require("vscode");
+const core = require("../../core/creatio-lens-core");
 
 class UpdateDescriptor {
 	constructor() {

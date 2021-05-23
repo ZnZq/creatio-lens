@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+const vscode = require("vscode");
 const types = require("../../core/typedef");
 const babelTypes = require("@babel/types");
 const core = require("../../core/creatio-lens-core");
@@ -19,7 +19,7 @@ class SchemaTreeItem extends vscode.TreeItem {
 		this.tooltip = schemaItem.tooltip;
 		if (schemaItem.location) {
 			this.command = {
-				command: 'schemaTreeViewer.reveal',
+				command: "schemaTreeViewer.reveal",
 				title: "Reveal",
 				arguments: [schemaItem.location]
 			};
@@ -48,16 +48,16 @@ class SchemaTreeViewer {
 		this._onDidChangeTreeData = new vscode.EventEmitter();
 		this.onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-		context.subscriptions.push(vscode.window.registerTreeDataProvider('SchemaTreeViewer', this));
-		context.subscriptions.push(vscode.window.createTreeView('SchemaTreeViewer', {
+		context.subscriptions.push(vscode.window.registerTreeDataProvider("SchemaTreeViewer", this));
+		context.subscriptions.push(vscode.window.createTreeView("SchemaTreeViewer", {
 			treeDataProvider: this
 		}));
 
-		vscode.commands.registerCommand('schemaTreeViewer.refresh', async () => {
+		vscode.commands.registerCommand("schemaTreeViewer.refresh", async () => {
 			this.refresh();
 		});
 
-		vscode.commands.registerCommand('schemaTreeViewer.reveal', ( /** @type {babelTypes.SourceLocation} */ location) => {
+		vscode.commands.registerCommand("schemaTreeViewer.reveal", ( /** @type {babelTypes.SourceLocation} */ location) => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor || !location) {
 				return;

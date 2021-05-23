@@ -1,11 +1,11 @@
-const vscode = require('vscode');
+const vscode = require("vscode");
 const helper = require("../../core/creatio-lens-helper");
 
 class ResourceHoverViewer {
 	constructor() {
-		vscode.languages.registerHoverProvider('javascript', {
+		vscode.languages.registerHoverProvider("javascript", {
 			async provideHover(document, position, token) {
-				if (document.languageId !== "javascript" || document.uri.scheme !== 'file') {
+				if (document.languageId !== "javascript" || document.uri.scheme !== "file") {
 					return null;
 				}
 

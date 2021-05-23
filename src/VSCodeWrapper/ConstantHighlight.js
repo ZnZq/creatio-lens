@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+const vscode = require("vscode");
 const core = require("../../core/creatio-lens-core");
 const types = require("../../core/typedef");
 const _ = require("underscore");

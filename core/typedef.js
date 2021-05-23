@@ -835,7 +835,7 @@ class DiffItem extends SchemaItem {
  * @param {{ type: string; }} object
  */
 function create(object) {
-	if (typeof object !== 'object') {
+	if (typeof object !== "object") {
 		return object;
 	}
 

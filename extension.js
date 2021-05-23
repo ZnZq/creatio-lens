@@ -1,18 +1,21 @@
-const vscode = require('vscode');
-const core = require('./core/creatio-lens-core');
-const { CompleteViewer } = require('./src/VSCodeWrapper/CompleteViewer');
-const { ConstantHighlight } = require('./src/VSCodeWrapper/ConstantHighlight');
-const { ResourceHoverViewer } = require('./src/VSCodeWrapper/ResourceHoverViewer');
-const { SchemaTreeViewer } = require('./src/VSCodeWrapper/SchemaTreeViewer');
-const { UpdateDescriptor } = require('./src/VSCodeWrapper/UpdateDescriptor');
+const vscode = require("vscode");
+const core = require("./core/creatio-lens-core");
+const { CompleteViewer } = require("./src/VSCodeWrapper/CompleteViewer");
+const { ConstantHighlight } = require("./src/VSCodeWrapper/ConstantHighlight");
+const { ResourceHoverViewer } = require("./src/VSCodeWrapper/ResourceHoverViewer");
+const { SchemaTreeViewer } = require("./src/VSCodeWrapper/SchemaTreeViewer");
+const { UpdateDescriptor } = require("./src/VSCodeWrapper/UpdateDescriptor");
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-	console.log('Congratulations, your extension "creatio-lens" is now active!');
+	console.log("Congratulations, your extension \"creatio-lens\" is now active!");
 	await core.activate();
-	core.onError.subscribe(error => vscode.window.showErrorMessage(error.toString()));
+	core.onError.subscribe(error => {
+		vscode.window.showErrorMessage(error.toString());
+		console.error(error);
+	});
 
 	new ResourceHoverViewer();
 	new UpdateDescriptor();
