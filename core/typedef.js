@@ -2,12 +2,166 @@ const babelTypes = require("@babel/types");
 const fs = require("fs");
 const helper = require("./creatio-lens-helper");
 const _ = require("underscore");
+const { Constants } = require("./creatio-lens-data");
+const traverse = require("@babel/traverse");
 
 /**
  * @typedef {object} Resource
  * @property {string} time
  * @property {Object.<string, Object.<string, string>>} resources
  */
+
+/**
+ * @typedef {object} Highlight
+ * @property {string} name
+ * @property {{line: number, column: number}} location
+ */
+
+class HighlightRule {
+	/** @type {string} */
+	attribute = null;
+
+	/** @type {Object.<string, number>} */
+	constantMap = null;
+
+	/** @type {string|Array<string>} */
+	parent = null;
+
+	/**
+	 * @param {string} attribute
+	 * @param {Object.<string, number>} constantMap
+	 * @param {string|Array<string>} [parent]
+	 */
+	constructor(attribute, constantMap, parent = null) {
+		this.attribute = attribute;
+		this.constantMap = constantMap;
+		this.parent = parent;
+	}
+
+	/**
+	 * @param {traverse.NodePath<babelTypes.ObjectProperty>} path
+	 * @returns {boolean}
+	 */
+	getIsValidNode(path) {
+		const name = helper.getPropertyName(path.node);
+		if (this.attribute !== name) {
+			return false;
+		}
+
+		if (path.node.value.type !== "NumericLiteral") {
+			return false;
+		}
+
+		if (this.parent && !helper.withParent(path, this.parent)) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/** 
+	 * @param {traverse.NodePath<babelTypes.ObjectProperty>} path
+	 * @returns {Highlight | null} 
+	 */
+	getHighlight(path) {
+		if (path.node.value.type !== "NumericLiteral") {
+			return null;
+		}
+
+		const text = helper.getKeyByValue(this.constantMap, path.node.value.value, Constants.defaultValue);
+
+		return {
+			name: text,
+			location: path.node.loc.end
+		};
+	}
+}
+
+class HighlightBusinessRule extends HighlightRule {
+	constructor() {
+		super(null, null, "businessRules");
+	}
+
+	/**
+	 * @param {traverse.NodePath<babelTypes.ObjectProperty>} path
+	 * @returns {boolean}
+	 */
+	getIsValidNode(path) {
+		if (path.node.value.type !== "ObjectExpression") {
+			return false;
+		}
+
+		if (this.parent && !helper.withParent(path, this.parent)) {
+			return false;
+		}
+
+		const uId = helper.getPropertyStringValue(path.node.value, "uId");
+
+		return !!uId;
+	}
+
+	/** 
+	 * @param {traverse.NodePath<babelTypes.ObjectProperty>} path
+	 * @returns {Highlight | null} 
+	 */
+	getHighlight(path) {
+		if (path.node.value.type !== "ObjectExpression") {
+			return null;
+		}
+
+		const object = path.node.value;
+		const description = HighlightBusinessRule.getObjectDescription(
+			path.parentPath, object
+		);
+
+		return {
+			name: description,
+			location: object.loc.start
+		};
+	}
+
+	/** 
+	 * @param {traverse.NodePath<babelTypes.Node>} path
+	 * @param {babelTypes.ObjectExpression} object
+	 * @returns {string}
+	 */
+	static getObjectDescription(path, object) {
+		const ruleProperty = path.parent;
+		if (ruleProperty.type !== "ObjectProperty") {
+			return Constants.defaultValue;
+		}
+
+		const ruleType = helper.getPropertyNumericValue(object, "ruleType");
+		const type = helper.getPropertyNumericValue(object, "type");
+		const property = helper.getPropertyNumericValue(object, "property");
+
+		if (ruleType === 0 && property === 0) {
+			return "Показывает элемент на странице";
+		} else if (ruleType === 0 && property === 1) {
+			return "Делает поле доступным";
+		} else if (ruleType === 0 && property === 2) {
+			return "Делает поле обязательным";
+		} else if (ruleType === 0 && property === 3) {
+			return "Делает поле только для чтения";
+		} else if (ruleType === 1) {
+			const parentName = helper.getPropertyName(ruleProperty);
+			const baseAttributePatch = helper.getPropertyStringValue(object, "baseAttributePatch");
+			const attribute = helper.getPropertyStringValue(object, "attribute");
+			const attributePath = helper.getPropertyStringValue(object, "attributePath");
+			const value = helper.getPropertyNodeValue(object, "value");
+
+			if (type === 0) {
+				return `Добавляет фильтр. ${parentName}.${baseAttributePatch} === ${value}`;
+			} else if (type === 1 && attributePath) {
+				return `Добавляет фильтр. ${parentName}.${baseAttributePatch} === ${attributePath}.${attribute}`;
+			} else if (type === 1 && !attributePath) {
+				return `Добавляет фильтр. ${parentName}.${baseAttributePatch} === ${attribute}`;
+			}
+		}
+
+		return Constants.defaultValue;
+	}
+}
 
 class SchemaItem {
 	/** @type {string} */
@@ -86,7 +240,7 @@ class DependencyItem extends SchemaItem {
 	 */
 	constructor(dependency, identifier) {
 		super(dependency.value);
-		this.tooltip = identifier?.name || "¯\\_(ツ)_/¯";
+		this.tooltip = identifier?.name || Constants.defaultValue;
 
 		this.dependency = dependency;
 		this.identifier = identifier;
@@ -192,7 +346,6 @@ class MessageDirectionItem extends SchemaItem {
 				return false;
 			}
 
-			/** @type {babelTypes.Node} */
 			const directionValue = helper.getPropertyValue(message.value, "direction");
 			const direction =
 				directionValue.type === "MemberExpression"
@@ -322,7 +475,6 @@ class DetailItem extends SchemaItem {
 			return;
 		}
 
-		/** @type {babelTypes.Node} */
 		const captionName = helper.getPropertyValue(value, "captionName");
 		if (!captionName || captionName.type !== "StringLiteral") {
 			return;
@@ -427,18 +579,18 @@ class DiffOperationItem extends SchemaItem {
 			};
 		});
 
-        if (this.operation !== "insert") {
-            this.children = this.preparedDiffs.map(
-                obj => new DiffItem(this.filePath, this, obj.obj)
-            );
-        } else {
-            this.children = _.unique(this.preparedDiffs.filter(obj => {
-                    var parent = _.findWhere(this.preparedDiffs, { name: obj.parentName });
+		if (this.operation !== "insert") {
+			this.children = this.preparedDiffs.map(
+				obj => new DiffItem(this.filePath, this, obj.obj)
+			);
+		} else {
+			this.children = _.unique(this.preparedDiffs.filter(obj => {
+					var parent = _.findWhere(this.preparedDiffs, { name: obj.parentName });
 
-                    return parent == null;
-                }), false, obj => obj.parentName)
-                .map(obj => new DiffParentItem(obj.parentName, this.filePath, this));
-        }
+					return parent == null;
+				}), false, obj => obj.parentName)
+				.map(obj => new DiffParentItem(obj.parentName, this.filePath, this));
+		}
 	}
 
 	/** @returns {Array<SchemaItem>} */
@@ -458,8 +610,8 @@ class DiffParentItem extends SchemaItem {
 	/** @type {DiffOperationItem} */
 	operationItem = null;
 
-    /** @type {Array<DiffItem>} */
-    children = null;
+	/** @type {Array<DiffItem>} */
+	children = null;
 
 	/**
 	 * @param {string} name
@@ -472,16 +624,16 @@ class DiffParentItem extends SchemaItem {
 		this.filePath = filePath;
 		this.operationItem = operationItem;
 
-        this._init();
+		this._init();
 	}
 
-    _init() {
-        this.children = _.where(this.operationItem.preparedDiffs, {
-            parentName: this.name
-        }).map(obj => new DiffItem(this.filePath, this.operationItem, obj.obj));
-    }
+	_init() {
+		this.children = _.where(this.operationItem.preparedDiffs, {
+			parentName: this.name
+		}).map(obj => new DiffItem(this.filePath, this.operationItem, obj.obj));
+	}
 
-    /** @returns {Array<DiffItem>} */
+	/** @returns {Array<DiffItem>} */
 	getChildren() {
 		return this.children;
 	}
@@ -537,7 +689,6 @@ class DiffItem extends SchemaItem {
 			return;
 		}
 
-		/** @type {babelTypes.Node} */
 		const captionValue = helper.getPropertyValue(value, "captionValue");
 		if (!captionValue) {
 			return;
@@ -559,7 +710,6 @@ class DiffItem extends SchemaItem {
 				break;
 			}
 			case "ObjectExpression": {
-				/** @type {babelTypes.Node} */
 				const bindTo = helper.getPropertyValue(captionValue, "bindTo");
 				if (!bindTo || bindTo.type !== "StringLiteral") {
 					return;
@@ -590,6 +740,8 @@ class DiffItem extends SchemaItem {
 /** @EndRegion Diff */
 
 module.exports = {
+	HighlightRule,
+	HighlightBusinessRule,
 	SchemaItem,
 	DependencyRootItem,
 	MixinRootItem,

@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const core = require('./core/creatio-lens-core');
+const { ConstantHighlight } = require('./src/VSCodeWrapper/ConstantHighlight');
 const { ResourceHoverViewer } = require('./src/VSCodeWrapper/ResourceHoverViewer');
 const { SchemaTreeViewer } = require('./src/VSCodeWrapper/SchemaTreeViewer');
 const { UpdateDescriptor } = require('./src/VSCodeWrapper/UpdateDescriptor');
@@ -12,11 +13,12 @@ function activate(context) {
 	core.activate();
 	core.onError.subscribe(error => vscode.window.showErrorMessage(error.toString()));
 
-	initUpdateAST(context);
-
 	new ResourceHoverViewer();
 	new UpdateDescriptor();
 	new SchemaTreeViewer(context);
+	new ConstantHighlight();
+
+	initUpdateAST(context);
 }
 
 function deactivate() {

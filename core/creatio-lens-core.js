@@ -6,6 +6,8 @@ const { Subject } = require("threads/observable");
 const helper = require("./creatio-lens-helper");
 const fs = require("fs");
 const path = require("path");
+const { Terrasoft, BusinessRuleEnum } = require("./creatio-lens-data");
+const _ = require("underscore");
 
 class CreatioLensCore {
 	/** @type {Subject} */
@@ -113,7 +115,7 @@ class CreatioLensCore {
 
 			resolve(null);
 		});
-	} 
+	}
 
 	/** @returns {Promise<types.MixinRootItem?>} */
 	async getMixinRoot() {
@@ -250,6 +252,48 @@ class CreatioLensCore {
 		} finally {
 			delete this.updatingDescriptor[filePath];
 		}
+	}
+
+	/** @returns {Promise<Array<types.Highlight>?>} */
+	async getConstantHighlights() {
+		if (!this.ast) {
+			return null;
+		}
+
+		const rules = this.getHighlightRule();
+
+		return new Promise(resolve => {
+			/** @type {Array<types.Highlight>} */
+			const highlights = [];
+
+			traverse.default(this.ast, {
+				ObjectProperty(path) {
+					var ruleHighlights = _.flatten(
+						rules.filter(rule => rule.getIsValidNode(path))
+							.map(rule => rule.getHighlight(path))
+					).filter(value => value !== null);
+
+					highlights.push(...ruleHighlights);
+				}
+			});
+
+			resolve(highlights);
+		});
+	}
+
+	/** @returns {Array<types.HighlightRule>} */
+	getHighlightRule() {
+		return [
+			new types.HighlightRule("itemType", Terrasoft.ViewItemType),
+			new types.HighlightRule("comparisonType", Terrasoft.ComparisonType),
+			new types.HighlightRule("dataValueType", Terrasoft.DataValueType),
+			new types.HighlightRule("type", Terrasoft.ViewModelColumnType, "attributes"),
+			new types.HighlightRule("logical", Terrasoft.LogicalOperatorType, "businessRules"),
+			new types.HighlightRule("ruleType", BusinessRuleEnum.RuleType, "businessRules"),
+			new types.HighlightRule("type", BusinessRuleEnum.ValueType, "businessRules"),
+			new types.HighlightRule("property", BusinessRuleEnum.Property, "businessRules"),
+			new types.HighlightBusinessRule()
+		];
 	}
 }
 
