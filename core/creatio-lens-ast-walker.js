@@ -115,16 +115,16 @@ expose({
 	 * @returns {Array<types.Highlight> | null}
 	 */
 	getConstantHighlights(ast, rules) {
-        if (!ast) {
-            return null;
-        }
+		if (!ast) {
+			return null;
+		}
 
 		/** @type {Array<types.Highlight>} */
 		const highlights = [];
 
-        rules = rules.map(rule => {
-            return types.create(rule);
-        });
+		rules = rules.map(rule => {
+			return types.create(rule);
+		});
 
 		traverse.default(ast, {
 			ObjectProperty(path) {
@@ -137,6 +137,6 @@ expose({
 			}
 		});
 
-        return highlights;
+		return highlights;
 	}
 });

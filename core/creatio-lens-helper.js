@@ -4,6 +4,7 @@ const fs = require("fs");
 const types = require("./typedef");
 const entities = require("html-entities");
 const traverse = require("@babel/traverse");
+const { Constants } = require("./creatio-lens-data");
 
 module.exports = {
 	/** @type {Object.<string, types.Resource>} */
@@ -157,7 +158,7 @@ module.exports = {
 		for (var file of files) {
 			var filePath = path.join(resourceDir, file);
 			var fileName = path.basename(filePath, ".xml");
-			var content = fs.readFileSync(filePath).toString();
+			var content = fs.readFileSync(filePath, "utf-8").toString();
 
 			// @ts-ignore
 			var matches = content.matchAll(regex);
@@ -190,8 +191,8 @@ module.exports = {
 		if (!value) {
 			return [{
 				key: "unknown",
-				value: "Ресурс родителя / не известный ресурс"
-    }];
+				value: Constants.defaultValue
+			}];
 		}
 
 		var values = [];
@@ -211,7 +212,7 @@ module.exports = {
 			return null;
 		}
 
-		var time = JSON.parse(fs.readFileSync(descriptorPath).toString());
+		var time = JSON.parse(fs.readFileSync(descriptorPath, "utf-8").toString());
 
 		return time.Descriptor.ModifiedOnUtc;
 	},

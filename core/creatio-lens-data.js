@@ -132,11 +132,11 @@ const businessRuleEnum = {
 }
 
 const constants = {
-    defaultValue: "¯\\_(ツ)_/¯"
+	defaultValue: "¯\\_(ツ)_/¯"
 }
 
 module.exports = {
 	Terrasoft: terrasoft,
-    BusinessRuleEnum: businessRuleEnum,
-    Constants: constants
+	BusinessRuleEnum: businessRuleEnum,
+	Constants: constants
 };
