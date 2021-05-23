@@ -241,6 +241,28 @@ class CreatioLensCore {
 			new types.HighlightBusinessRule()
 		];
 	}
+
+	/**
+	 * @param {string} pattern
+	 * @param {string} line
+	 * @param {Object.<string, number>} data
+	 * @returns {Array<string>}
+	 */
+	completionItems(pattern, line, data) {
+		const regex = new RegExp(`${pattern.replace(".", "\\.")}(?<filter>\w+)?`);
+		var m = regex.exec(line);
+
+		if (!m) {
+			return [];
+		}
+
+		var filter = m.groups.filter || "";
+		var items = Object.keys(data).filter(
+			item => item.toLowerCase().startsWith(filter.toLowerCase())
+		);
+
+		return items;
+	}
 }
 
 module.exports = new CreatioLensCore();

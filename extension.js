@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const core = require('./core/creatio-lens-core');
+const { CompleteViewer } = require('./src/VSCodeWrapper/CompleteViewer');
 const { ConstantHighlight } = require('./src/VSCodeWrapper/ConstantHighlight');
 const { ResourceHoverViewer } = require('./src/VSCodeWrapper/ResourceHoverViewer');
 const { SchemaTreeViewer } = require('./src/VSCodeWrapper/SchemaTreeViewer');
@@ -17,6 +18,7 @@ async function activate(context) {
 	new UpdateDescriptor();
 	new SchemaTreeViewer(context);
 	new ConstantHighlight();
+	new CompleteViewer(context);
 
 	await initUpdateAST(context);
 }

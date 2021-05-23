@@ -1,5 +1,4 @@
 const babelTypes = require("@babel/types");
-const fs = require("fs");
 const helper = require("./creatio-lens-helper");
 const _ = require("underscore");
 const { Constants } = require("./creatio-lens-data");
@@ -566,9 +565,7 @@ class BusinessRuleItem extends SchemaItem {
 			}
 
 			return new SchemaItem({
-				name: HighlightBusinessRule.getObjectDescription(
-					prop, prop.value
-				),
+				name: HighlightBusinessRule.getObjectDescription(prop, prop.value),
 				location: prop.value.loc
 			});
 		});
