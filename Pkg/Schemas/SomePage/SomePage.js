@@ -1,10 +1,11 @@
 // @ts-nocheck
 define("SomePage", [
+	"SomePageResources",
 	"SomeConstants",
 	"ServiceHelper",
 	"SomeMixin1",
 	"SomeMixin2",
-], function(constants, ServiceHelper) {
+], function(resources, constants, ServiceHelper) {
 	return {
 		entitySchemaName: "SomeEntity",
 		mixins: {
@@ -95,7 +96,14 @@ define("SomePage", [
 				}
 			}
 		} /**SCHEMA_BUSINESS_RULES*/ ,
-		methods: {},
+		methods: {
+			init: function() {
+				this.callParent(arguments);
+
+				resources.localizableStrings.SomeResource1;
+				this.get("Resources.Strings.SomeResource2");
+			}
+		},
 		dataModels: /**SCHEMA_DATA_MODELS*/ {} /**SCHEMA_DATA_MODELS*/ ,
 		diff: /**SCHEMA_DIFF*/ [
 			{
