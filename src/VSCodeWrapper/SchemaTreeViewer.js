@@ -75,7 +75,7 @@ class SchemaTreeViewer {
 			editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
 		});
 
-		core.afterUpdateAST.subscribe(() => this.refresh());
+		core.onAfterUpdateAST.subscribe(() => this.refresh());
 	}
 
 	refresh() {

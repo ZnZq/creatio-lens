@@ -2,15 +2,31 @@ const vscode = require('vscode');
 const core = require('./core/creatio-lens-core');
 const { ResourceHoverViewer } = require('./src/VSCodeWrapper/ResourceHoverViewer');
 const { SchemaTreeViewer } = require('./src/VSCodeWrapper/SchemaTreeViewer');
+const { UpdateDescriptor } = require('./src/VSCodeWrapper/UpdateDescriptor');
 
 /**
  * @param {vscode.ExtensionContext} context
  */
-async function activate(context) {
-	await core.activate();
-
+function activate(context) {
 	console.log('Congratulations, your extension "creatio-lens" is now active!');
+	core.activate();
+	core.onError.subscribe(error => vscode.window.showErrorMessage(error.toString()));
 
+	initUpdateAST(context);
+
+	new ResourceHoverViewer();
+	new UpdateDescriptor();
+	new SchemaTreeViewer(context);
+}
+
+function deactivate() {
+	core.deactivate();
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function initUpdateAST(context) {
 	const editor = vscode.window.activeTextEditor;
 	var isValid = editor?.document?.languageId === "javascript";
 
@@ -45,13 +61,6 @@ async function activate(context) {
 
 		core.updateAST(null, null);
 	}, null, context.subscriptions);
-
-	new ResourceHoverViewer();
-	new SchemaTreeViewer(context);
-}
-
-async function deactivate() {
-	await core.deactivate();
 }
 
 module.exports = {
