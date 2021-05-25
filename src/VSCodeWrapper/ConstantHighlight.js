@@ -17,6 +17,7 @@ class ConstantHighlight {
 	timeout = null;
 
 	constructor() {
+		core.onBeforeUpdateAST.subscribe(_ => this.highlights = []);
 		core.onAfterUpdateAST.subscribe(_ => this.updateHighlights());
 
 		vscode.window.onDidChangeTextEditorVisibleRanges(event => {

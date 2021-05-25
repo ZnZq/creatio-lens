@@ -212,7 +212,8 @@ module.exports = {
 			return null;
 		}
 
-		var time = JSON.parse(fs.readFileSync(descriptorPath, "utf-8").toString());
+		const json = fs.readFileSync(descriptorPath, "utf-8").toString().trim();
+		const time = JSON.parse(json);
 
 		return time.Descriptor.ModifiedOnUtc;
 	},

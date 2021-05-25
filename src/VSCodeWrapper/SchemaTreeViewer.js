@@ -57,7 +57,7 @@ class SchemaTreeViewer {
 		}));
 
 		vscode.commands.registerCommand("schemaTreeViewer.refresh", async () => {
-			this.refresh(false);
+			this.refresh();
 		});
 
 		vscode.commands.registerCommand("schemaTreeViewer.reveal", ( /** @type {babelTypes.SourceLocation} */ location) => {
@@ -82,17 +82,8 @@ class SchemaTreeViewer {
 		core.onAfterUpdateAST.subscribe(() => this.refresh());
 	}
 
-	refresh(withTimeout = true) {
-		if (!withTimeout) {
-			this._onDidChangeTreeData.fire();
-			return;
-		}
-
-		if (this.timeout) {
-			clearTimeout(this.timeout);
-		}
-
-		this.timeout = setTimeout(() => this._onDidChangeTreeData.fire(), 1000);
+	refresh() {
+		this._onDidChangeTreeData.fire();
 	}
 
 	/**

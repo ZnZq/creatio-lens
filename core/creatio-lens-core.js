@@ -165,22 +165,50 @@ class CreatioLensCore {
 		return root;
 	}
 
+	documents = {};
+
 	/**
 	 * @param {string} filePath
 	 * @param {string} script
 	 * @return {Promise<void>}
 	 */
 	async updateAST(filePath, script) {
+		if (!filePath || !script) {
+			this.onBeforeUpdateAST.next();
+			this.ast = null;
+			this.onAfterUpdateAST.next();
+			return;
+		}
+
 		return new Promise(resolve => {
 			try {
 				this.filePath = filePath;
+				const currentTime = helper.getDescriptorTime(path.dirname(filePath));
+				let document = this.documents[filePath];
+				let needUpdate = true;
+
+				if (document) {
+					const time = document.time;
+					if (currentTime) {
+						needUpdate = time != currentTime;
+					}
+				} else {
+					document = {
+						time: currentTime,
+						ast: null
+					}
+				}
+
 				this.onBeforeUpdateAST.next();
 
-				if (script) {
+				if (needUpdate) {
 					this.ast = parser.parse(script);
+					document.ast = this.ast;
 				} else {
-					this.ast = null;
+					this.ast = document.ast;
 				}
+
+				this.documents[filePath] = document;
 
 				this.onAfterUpdateAST.next();
 			} catch { } finally {
@@ -206,11 +234,12 @@ class CreatioLensCore {
 			}
 
 			const data = fs.readFileSync(descriptorFile);
-			const jsonData = JSON.parse(data.toString("utf8").trim());
+			const json = data.toString("utf8").trim();
+			const jsonData = JSON.parse(json);
 			jsonData.Descriptor.ModifiedOnUtc = `\\/Date(${new Date().getTime()})\\/`;
-			const json = JSON.stringify(jsonData, null, "  ").replace(/\\\\/g, "\\");
+			const newJson = JSON.stringify(jsonData, null, "  ").replace(/\\\\/g, "\\");
 
-			fs.writeFileSync(descriptorFile, json, { encoding: "utf8" });
+			fs.writeFileSync(descriptorFile, newJson, { encoding: "utf8" });
 		} catch (error) {
 			this.onError.next(error);
 		} finally {
