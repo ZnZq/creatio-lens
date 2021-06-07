@@ -177,8 +177,6 @@ class CreatioLensCore {
 			return null;
 		}
 
-		let filePath = this.filePath;
-
 		return new Promise(resolve => {
 			traverse.default(this.ast, {
 				ObjectProperty(path) {
