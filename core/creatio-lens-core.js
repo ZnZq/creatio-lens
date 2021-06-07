@@ -70,19 +70,62 @@ class CreatioLensCore {
 
 	/** @returns {Promise<types.DependencyRootItem | null>} */
 	async getDependencyRoot() {
-		const root = await this.astWalker.getDependencyRoot(this.ast);
+		if (!this.ast) {
+			return null;
+		}
 
-		return root;
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ArrayExpression(node) {
+					const parent = node.parent;
+					if (parent.type === "CallExpression" && parent.callee.type === "Identifier" && parent.callee.name === "define") {
+						if (parent.arguments.length !== 3) {
+							return;
+						}
+
+						var func = parent.arguments[2];
+						if (func.type !== "FunctionExpression") {
+							return;
+						}
+
+						resolve(new types.DependencyRootItem({
+							// @ts-ignore
+							dependencies: node.node.elements.filter(el => el.type === "StringLiteral"),
+							// @ts-ignore
+							identifiers: func.params.filter(el => el.type === "Identifier")
+						}));
+					}
+				}
+			});
+
+			resolve(null);
+		});
 	}
 
 	/**
 	 * @param {string} propertyName
-	 * @returns {Promise<Array<babelTypes.ObjectProperty> | null>}
+	 * @returns {Promise<traverse.NodePath<babelTypes.ObjectProperty> | null>}
 	 */
 	async getSchemaProperty(propertyName) {
-		var array = await this.astWalker.getSchemaProperty(this.ast, propertyName);
+		if (!this.ast) {
+			return null;
+		}
 
-		return array;
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(path) {
+					if (path.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(path.node) === propertyName) {
+						resolve(path);
+					}
+				}
+			});
+
+			resolve(null);
+		});
 	}
 
 	/** @returns {Promise<types.MixinRootItem | null>} */
@@ -91,12 +134,12 @@ class CreatioLensCore {
 			return null;
 		}
 
-		const properties = await this.getSchemaProperty("mixins");
-		if (!properties) {
+		const mixins = await this.getSchemaProperty("mixins");
+		if (!mixins) {
 			return null;
 		}
 
-		return new types.MixinRootItem({ properties });
+		return new types.MixinRootItem({ mixins });
 	}
 
 	/** @returns {Promise<types.MessageRootItem | null>} */
@@ -105,12 +148,12 @@ class CreatioLensCore {
 			return null;
 		}
 
-		const properties = await this.getSchemaProperty("messages");
-		if (!properties) {
+		const messages = await this.getSchemaProperty("messages");
+		if (!messages) {
 			return null;
 		}
 
-		return new types.MessageRootItem({ messages: properties });
+		return new types.MessageRootItem({ messages });
 	}
 
 	/** @returns {Promise<types.AttributeRootItem | null>} */
@@ -119,12 +162,12 @@ class CreatioLensCore {
 			return null;
 		}
 
-		const properties = await this.getSchemaProperty("attributes");
-		if (!properties) {
+		const attributes = await this.getSchemaProperty("attributes");
+		if (!attributes) {
 			return null;
 		}
 
-		return new types.AttributeRootItem({ properties });
+		return new types.AttributeRootItem({ attributes });
 	}
 
 	/** @returns {Promise<types.DetailRootItem | null>} */
@@ -133,14 +176,13 @@ class CreatioLensCore {
 			return null;
 		}
 
-		const properties = await this.getSchemaProperty("details");
-		if (!properties) {
+		const details = await this.getSchemaProperty("details");
+		if (!details) {
 			return null;
 		}
 
 		return new types.DetailRootItem({
-			filePath: this.filePath,
-			properties
+			filePath: this.filePath, details
 		});
 	}
 
@@ -150,22 +192,38 @@ class CreatioLensCore {
 			return null;
 		}
 
-		const properties = await this.getSchemaProperty("businessRules");
-		if (!properties) {
+		const businessRules = await this.getSchemaProperty("businessRules");
+		if (!businessRules) {
 			return null;
 		}
 
-		return new types.BusinessRuleRootItem({properties});
+		return new types.BusinessRuleRootItem({ businessRules });
 	}
 
 	/** @returns {Promise<types.DiffRootItem | null>} */
 	async getDiffRoot() {
-		const root = await this.astWalker.getDiffRoot(this.ast, this.filePath);
+		if (!this.ast) {
+			return null;
+		}
 
-		return root;
+		let filePath = this.filePath;
+
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(path) {
+					if (path.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(path.node) === "diff") {
+						resolve(new types.DiffRootItem({ filePath, diff: path }));
+					}
+				}
+			});
+
+			resolve(null);
+		});
 	}
-
-	documents = {};
 
 	/**
 	 * @param {string} filePath
@@ -173,42 +231,16 @@ class CreatioLensCore {
 	 * @return {Promise<void>}
 	 */
 	async updateAST(filePath, script) {
-		if (!filePath || !script) {
-			this.onBeforeUpdateAST.next();
-			this.ast = null;
-			this.onAfterUpdateAST.next();
-			return;
-		}
-
 		return new Promise(resolve => {
 			try {
 				this.filePath = filePath;
-				const currentTime = helper.getDescriptorTime(path.dirname(filePath));
-				let document = this.documents[filePath];
-				let needUpdate = true;
-
-				if (document) {
-					const time = document.time;
-					if (currentTime) {
-						needUpdate = time != currentTime;
-					}
-				} else {
-					document = {
-						time: currentTime,
-						ast: null
-					}
-				}
-
 				this.onBeforeUpdateAST.next();
 
-				if (needUpdate) {
+				if (script) {
 					this.ast = parser.parse(script);
-					document.ast = this.ast;
 				} else {
-					this.ast = document.ast;
+					this.ast = null;
 				}
-
-				this.documents[filePath] = document;
 
 				this.onAfterUpdateAST.next();
 			} catch { } finally {
@@ -260,6 +292,7 @@ class CreatioLensCore {
 			new types.HighlightRule({ attribute: "itemType", constantMap: Terrasoft.ViewItemType }),
 			new types.HighlightRule({ attribute: "comparisonType", constantMap: Terrasoft.ComparisonType }),
 			new types.HighlightRule({ attribute: "dataValueType", constantMap: Terrasoft.DataValueType }),
+			new types.HighlightRule({ attribute: "contentType", constantMap: Terrasoft.ContentType }),
 			new types.HighlightRule({ attribute: "type", constantMap: Terrasoft.ViewModelColumnType, parent: "attributes" }),
 			new types.HighlightRule({ attribute: "logical", constantMap: Terrasoft.LogicalOperatorType, parent: "businessRules" }),
 			new types.HighlightRule({ attribute: "ruleType", constantMap: BusinessRuleEnum.RuleType, parent: "businessRules" }),

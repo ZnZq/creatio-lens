@@ -99,6 +99,15 @@ const terrasoft = {
 	LogicalOperatorType: {
 		AND: 0,
 		OR: 1
+	},
+	ContentType: {
+		LONG_TEXT: 0,
+		SHORT_TEXT: 1,
+		DATE_TIME: 2,
+		ENUM: 3,
+		RICH_TEXT: 4,
+		LOOKUP: 5,
+		SEARCHABLE_TEXT: 6
 	}
 }
 

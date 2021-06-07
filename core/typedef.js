@@ -261,15 +261,29 @@ class DependencyItem extends SchemaItem {
 /** @Region Mixin */
 
 class MixinRootItem extends SchemaItem {
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	mixins = null;
+
 	/** @type {Array<babelTypes.ObjectProperty>} */
 	properties = null;
 
 	/**
-	 * @param {{ properties: babelTypes.ObjectProperty[]; }} config
+	 * @param {{ mixins: traverse.NodePath<babelTypes.ObjectProperty>; }} config
 	 */
 	constructor(config) {
 		super({ name: "Mixins" });
-		this.properties = config.properties;
+		this.mixins = config.mixins;
+		this._init();
+	}
+
+	_init() {
+		if (this.mixins.node.value.type !== "ObjectExpression") {
+			this.properties = [];
+			return;
+		}
+
+		// @ts-ignore
+		this.properties = this.mixins.node.value.properties.filter(prop => prop.type === "ObjectProperty");
 	}
 
 	/** @returns {Array<MixinItem>} */
@@ -305,14 +319,14 @@ class MixinItem extends SchemaItem {
 /** @Region Message */
 
 class MessageRootItem extends SchemaItem {
-	/** @type {Array<babelTypes.ObjectProperty>} */
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
 	messages = null;
 
 	/** @type {Array<MessageDirectionItem>} */
 	directions = null;
 
 	/**
-	 * @param {{ messages: babelTypes.ObjectProperty[]; }} config
+	 * @param {{ messages: traverse.NodePath<babelTypes.ObjectProperty>; }} config
 	 */
 	constructor(config) {
 		super({ name: "Messages" });
@@ -321,9 +335,19 @@ class MessageRootItem extends SchemaItem {
 	}
 
 	_init() {
+		if (this.messages.node.value.type !== "ObjectExpression") {
+			this.directions = [];
+			return;
+		}
+
+		/** @type {Array<babelTypes.ObjectProperty>} */
+		// @ts-ignore
+		var properties = this.messages.node.value.properties.filter(prop => prop.type === "ObjectProperty");
+
 		this.directions = [
-			new MessageDirectionItem("SUBSCRIBE", this.messages),
-			new MessageDirectionItem("PUBLISH", this.messages),
+			new MessageDirectionItem("SUBSCRIBE", properties),
+			new MessageDirectionItem("PUBLISH", properties),
+			new MessageDirectionItem("BIDIRECTIONAL", properties),
 		];
 	}
 
@@ -344,7 +368,7 @@ class MessageDirectionItem extends SchemaItem {
 	messages = null;
 
 	/**
-	 * @param {"SUBSCRIBE" | "PUBLISH"} mode
+	 * @param {"SUBSCRIBE" | "PUBLISH" | "BIDIRECTIONAL"} mode
 	 * @param {Array<babelTypes.ObjectProperty>} messages
 	 */
 	constructor(mode, messages) {
@@ -400,15 +424,29 @@ class MessageItem extends SchemaItem {
 /** @Region Attribute */
 
 class AttributeRootItem extends SchemaItem {
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	attributes = null;
+
 	/** @type {Array<babelTypes.ObjectProperty>} */
-	properties = null;
+	properties = [];
 
 	/**
-	 * @param {{ properties: babelTypes.ObjectProperty[]; }} config
+	 * @param {{ attributes: traverse.NodePath<babelTypes.ObjectProperty>; }} config
 	 */
 	constructor(config) {
 		super({ name: "Attributes" });
-		this.properties = config.properties;
+		this.attributes = config.attributes;
+		this._init();
+	}
+
+	_init() {
+		if (this.attributes.node.value.type !== "ObjectExpression") {
+			this.properties = [];
+			return;
+		}
+
+		// @ts-ignore
+		this.properties = this.attributes.node.value.properties.filter(prop => prop.type === "ObjectProperty");
 	}
 
 	/** @returns {Array<AttributeItem>} */
@@ -443,19 +481,33 @@ class AttributeItem extends SchemaItem {
 /** @Region Detail */
 
 class DetailRootItem extends SchemaItem {
-	/** @type {Array<babelTypes.ObjectProperty>} */
-	properties = null;
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	details = null;
 
 	/** @type {string} filePath */
 	filePath = null;
 
+	/** @type {Array<babelTypes.ObjectProperty>} */
+	properties = null;
+
 	/**
-	 * @param {{ properties: babelTypes.ObjectProperty[]; filePath: string; }} config
+	 * @param {{ details: traverse.NodePath<babelTypes.ObjectProperty>; filePath: string; }} config
 	 */
 	constructor(config) {
 		super({ name: "Details" });
-		this.properties = config.properties;
+		this.details = config.details;
 		this.filePath = config.filePath;
+		this._init();
+	}
+
+	_init() {
+		if (this.details.node.value.type !== "ObjectExpression") {
+			this.properties = [];
+			return;
+		}
+
+		// @ts-ignore
+		this.properties = this.details.node.value.properties.filter(prop => prop.type === "ObjectProperty");
 	}
 
 	/** @returns {Array<DetailItem>} */
@@ -509,15 +561,29 @@ class DetailItem extends SchemaItem {
 /** @Region BusinessRule */
 
 class BusinessRuleRootItem extends SchemaItem {
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	businessRules = null;
+
 	/** @type {Array<babelTypes.ObjectProperty>} */
 	properties = null;
 
 	/**
-	 * @param {{ properties: babelTypes.ObjectProperty[] }} config
+	 * @param {{ businessRules: traverse.NodePath<babelTypes.ObjectProperty> }} config
 	 */
 	constructor(config) {
 		super({ name: "BusinessRules" });
-		this.properties = config.properties;
+		this.businessRules = config.businessRules;
+		this._init();
+	}
+
+	_init() {
+		if (this.businessRules.node.value.type !== "ObjectExpression") {
+			this.properties = [];
+			return;
+		}
+
+		// @ts-ignore
+		this.properties = this.businessRules.node.value.properties.filter(prop => prop.type === "ObjectProperty");
 	}
 
 	/** @returns {Array<BusinessRuleItem>} */
@@ -586,8 +652,8 @@ class BusinessRuleItem extends SchemaItem {
 /** @Region Diff */
 
 class DiffRootItem extends SchemaItem {
-	/** @type {Array<babelTypes.ObjectExpression>} */
-	objects = null;
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	diff = null;
 
 	/** @type {string} */
 	filePath = null;
@@ -596,22 +662,31 @@ class DiffRootItem extends SchemaItem {
 	operations = null;
 
 	/**
-	 * @param {{ objects: babelTypes.ObjectExpression[]; filePath: string; }} config
+	 * @param {{ diff: traverse.NodePath<babelTypes.ObjectProperty>; filePath: string; }} config
 	 */
 	constructor(config) {
 		super({ name: "Diff" });
-		this.objects = config.objects;
+		this.diff = config.diff;
 		this.filePath = config.filePath;
 
 		this._init();
 	}
 
 	_init() {
+		if (this.diff.node.value.type !== "ArrayExpression") {
+			this.operations = [];
+			return;		
+		}
+
+		/** @type {Array<babelTypes.ObjectExpression>} */
+		// @ts-ignore
+		var objects = this.diff.node.value.elements.filter(obj => obj.type === "ObjectExpression");
+
 		this.operations = [
-			new DiffOperationItem("remove", this.filePath, this.objects),
-			new DiffOperationItem("merge", this.filePath, this.objects),
-			new DiffOperationItem("insert", this.filePath, this.objects),
-			new DiffOperationItem("move", this.filePath, this.objects),
+			new DiffOperationItem("remove", this.filePath, objects),
+			new DiffOperationItem("merge", this.filePath, objects),
+			new DiffOperationItem("insert", this.filePath, objects),
+			new DiffOperationItem("move", this.filePath, objects),
 		];
 	}
 
