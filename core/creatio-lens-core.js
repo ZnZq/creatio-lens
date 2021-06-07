@@ -56,8 +56,9 @@ class CreatioLensCore {
 				await this.getMessageRoot(),
 				await this.getAttributeRoot(),
 				await this.getDetailRoot(),
-				await this.getBusinessRuleRoot(),
+				await this.getMethodRoot(),
 				await this.getDiffRoot(),
+				await this.getBusinessRuleRoot(),
 			].filter(root => root != null);
 		} catch (error) {
 			this.onError.next(error);
@@ -168,6 +169,31 @@ class CreatioLensCore {
 		}
 
 		return new types.AttributeRootItem({ attributes });
+	}
+
+	/** @returns {Promise<types.MethodRootItem | null>} */
+	async getMethodRoot() {
+		if (!this.ast) {
+			return null;
+		}
+
+		let filePath = this.filePath;
+
+		return new Promise(resolve => {
+			traverse.default(this.ast, {
+				ObjectProperty(path) {
+					if (path.parentPath?.parent?.type !== "ReturnStatement") {
+						return;
+					}
+
+					if (helper.getPropertyName(path.node) === "methods") {
+						resolve(new types.MethodRootItem({ methods: path }));
+					}
+				}
+			});
+
+			resolve(null);
+		});
 	}
 
 	/** @returns {Promise<types.DetailRootItem | null>} */

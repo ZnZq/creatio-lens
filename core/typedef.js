@@ -649,6 +649,64 @@ class BusinessRuleItem extends SchemaItem {
 
 /** @EndRegion BusinessRule */
 
+/** @Region Method */
+
+class MethodRootItem extends SchemaItem {
+	/** @type {traverse.NodePath<babelTypes.ObjectProperty>} */
+	methods = null;
+
+	/** @type {Array<babelTypes.ObjectProperty>} */
+	properties = null;
+
+	/**
+	 * @param {{ methods: traverse.NodePath<babelTypes.ObjectProperty>; }} config
+	 */
+	constructor(config) {
+		super({ name: "Methods" });
+		this.methods = config.methods;
+		this._init();
+	}
+
+	_init() {
+		if (this.methods.node.value.type !== "ObjectExpression") {
+			this.properties = [];
+			return;
+		}
+
+		// @ts-ignore
+		this.properties = this.methods.node.value.properties.filter(prop => prop.type === "ObjectProperty");
+	}
+
+	/** @returns {Array<MethodItem>} */
+	getChildren() {
+		return this.properties.map(prop => new MethodItem(prop));
+	}
+
+	getHasChildren() {
+		return this.properties.length > 0;
+	}
+}
+
+class MethodItem extends SchemaItem {
+	/** @type {babelTypes.ObjectProperty} */
+	method = null;
+
+	/**
+	 * @param {babelTypes.ObjectProperty} method
+	 */
+	constructor(method) {
+		super({
+			name: method.key.type === "Identifier" && method.key.name || method.key.type === "StringLiteral" && method.key.value
+		});
+
+		this.tooltip = method.value.type === "StringLiteral" && method.value.value;
+		this.method = method;
+		this.location = method.loc;
+	}
+}
+
+/** @EndRegion Method */
+
 /** @Region Diff */
 
 class DiffRootItem extends SchemaItem {
@@ -930,4 +988,5 @@ module.exports = {
 	DetailRootItem,
 	BusinessRuleRootItem,
 	DiffRootItem,
+	MethodRootItem,
 };
