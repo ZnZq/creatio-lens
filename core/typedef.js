@@ -3,6 +3,7 @@ const helper = require("./creatio-lens-helper");
 const _ = require("underscore");
 const { Constants } = require("./creatio-lens-data");
 const traverse = require("@babel/traverse");
+const { constant } = require("underscore");
 
 /**
  * @typedef {object} Resource
@@ -964,6 +965,44 @@ class DiffItem extends SchemaItem {
 
 /** @EndRegion Diff */
 
+/** @Region Region */
+
+class Region {
+	/** @type {string} */
+	name = Constants.defaultValue;
+
+	range = { start: 0, end: 0 };
+
+	/** @type {babelTypes.SourceLocation} */
+	location = null;
+
+	/** @type {Array<Region>} */
+	children = [];
+
+	/**
+	 * @param {string} name 
+	 * @param {{start: number, end: number}} range 
+	 * @param {babelTypes.SourceLocation} location 
+	 */
+	constructor(name, range, location) {
+		this.name = name;
+		this.range = range;
+		this.location = location;
+	}
+
+	getHasChildren() {
+		return this.children.length > 0;
+	}
+}
+
+const RegionType = {
+	Start: "Start",
+	End: "End",
+	Unknown: "Unknown"
+};
+
+/** @EndRegion Region */
+
 /**
  * @param {{ type: string; }} object
  */
@@ -989,4 +1028,6 @@ module.exports = {
 	BusinessRuleRootItem,
 	DiffRootItem,
 	MethodRootItem,
+	Region,
+	RegionType,
 };

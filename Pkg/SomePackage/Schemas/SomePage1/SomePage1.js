@@ -100,6 +100,8 @@ define("SomePage", [
 		},
 		dataModels: /**SCHEMA_DATA_MODELS*/ {} /**SCHEMA_DATA_MODELS*/ ,
 		diff: /**SCHEMA_DIFF*/ [
+			/** @Region Buttons */
+
 			{
 				"operation": "insert",
 				"name": "SomeButton1",
@@ -126,6 +128,25 @@ define("SomePage", [
 				"parentName": "LeftContainer",
 				"propertyName": "items",
 			},
+
+			/** @Region Buttons123 */
+
+			// #region Test
+
+			// 12312312
+
+			// #endregion Test
+			
+			/** @EndRegion Buttons123 */ 
+
+			/** @EndRegion Buttons */ 
+
+			// #region Test
+
+			// 12312312
+
+			// #endregion Test
+
 			{
 				"operation": "merge",
 				"name": "Header",

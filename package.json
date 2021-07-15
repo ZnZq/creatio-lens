@@ -22,11 +22,19 @@
 			},
 			{
 				"command": "schemaTreeViewer.reveal",
-				"title": "Schema Tree Viewer reveal"
+				"title": "Schema Tree Viewer Reveal"
 			},
 			{
 				"command": "resourceTreeViewer.refresh",
 				"title": "Refresh Resource Tree Viewer"
+			},
+			{
+				"command": "regionTreeViewer.refresh",
+				"title": "Refresh Region Tree Viewer"
+			},
+			{
+				"command": "regionTreeViewer.reveal",
+				"title": "Region Viewer Reveal"
 			}
 		],
 		"views": {
@@ -38,6 +46,10 @@
 				{
 					"id": "ResourceTreeViewer",
 					"name": "Resource Tree Viewer"
+				},
+				{
+					"id": "RegionTreeViewer",
+					"name": "Region Tree Viewer"
 				}
 			]
 		},

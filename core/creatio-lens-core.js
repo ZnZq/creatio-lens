@@ -23,6 +23,7 @@ class CreatioLensCore {
 	/** @type {Subject} */
 	onError = null;
 
+	/** @type {babelTypes.File} */
 	ast = null;
 
 	/** @type {string} */
@@ -34,7 +35,25 @@ class CreatioLensCore {
 	/** @type {import("threads").FunctionThread<any, any> & import("threads/dist/types/master").ModuleProxy<any> & import("threads/dist/types/master").PrivateThreadProps} */
 	astWalker = null;
 
+	/** @type {{regions: Array<{beginRegex: string, endRegex: string}>, allRegexs: Array<string>}} */
+	regionConfig = {
+		regions: [],
+		allRegexs: []
+	};
+
 	async activate() {
+		this.setRegionConfig({
+			regions: [
+				{
+					beginRegex: "(\\s+)?#region(:?\\s+(?<name>.*))?",
+					endRegex: "(\\s+)?#endregion"
+				},
+				{
+					beginRegex: "\\*\\s+@Region(:?\\s+(?<name>.*))?",
+					endRegex: "\\*\\s+@EndRegion"
+				}
+			]
+		});
 		this.astWalker = await spawn(new Worker("./creatio-lens-ast-walker"));
 		this.resourceCache = {};
 		this.onBeforeUpdateAST = new Subject();
@@ -352,6 +371,114 @@ class CreatioLensCore {
 	 */
 	getResources(filePath) {
 		return helper.getResources(filePath);
+	}
+
+	/**
+	 * @returns {Array<types.Region>}
+	 */
+	getRegions() {
+		var regions = [];
+
+		if (!this.ast || !this.ast.comments) {
+			return regions;
+		}
+
+		var regionStack = [];
+
+		for (var comment of this.ast.comments) {
+			var region = this.prepareRegion(comment.value);
+			if (!region.isRegion) {
+				continue;
+			}
+
+			if (region.type === types.RegionType.Start) {
+				regionStack.push(new types.Region(region.name, {
+					start: comment.start,
+					end: comment.end,
+				}, comment.loc));
+			} else if (region.type === types.RegionType.End) {
+				if (regionStack.length === 0) {
+					continue;
+				}
+				if (regionStack.length === 1) {
+					regions.push(regionStack[0]);
+				}
+				var endItem = regionStack.pop();
+				endItem.range.end = comment.end;
+				endItem.location.end = comment.loc.end;
+
+				var parentItem = regionStack.pop();
+				if (parentItem) {
+					parentItem.children.push(endItem);
+					regionStack.push(parentItem);
+				}
+			}
+		}
+
+		return regions;
+	}
+
+	/**
+	 * @param {{regions: Array<{beginRegex: string, endRegex: string}>}} config 
+	 */
+	setRegionConfig(config) {
+		this.regionConfig = {
+			regions: config.regions,
+			// @ts-ignore
+			allRegexs: config.regions.map(el => [el.beginRegex, el.endRegex]).flat()
+		};
+	}
+
+	prepareRegion(text) {
+		if (!this.getIsRegion(text)) {
+			return { isRegion: false };
+		}
+
+		return {
+			isRegion: true,
+			type: this.getRegionType(text),
+			name: this.getRegionName(text)
+		};
+	}
+
+	getIsRegion(text) {
+		return this.regionConfig.allRegexs.some(regex => new RegExp(regex, "gmi").test(text));
+	}
+
+	getRegionType(text) {
+		return this.getIsRegionStart(text)
+			? types.RegionType.Start
+			: this.getIsRegionEnd(text)
+				? types.RegionType.End
+				: types.RegionType.Unknown;
+	}
+	
+	getRegionName(text) {
+		var match = this.regionConfig.regions
+			.map(region => new RegExp(region.beginRegex, "gmi").exec(text))
+			.find(match => match != null);
+
+		var name = match?.groups?.name;
+
+		return this.getIsEmptyOrNull(name) 
+			? "region" 
+			: name;
+	}
+
+	getIsRegionStart(text) {
+		return this.regionConfig.regions.some(region => new RegExp(region.beginRegex, "gmi").test(text));
+	}
+
+	getIsRegionEnd(text) {
+		return this.regionConfig.regions.some(region => new RegExp(region.endRegex, "gmi").test(text));;
+	}
+
+	/**
+	 * @param {string} text 
+	 * @returns {boolean}
+	 */
+	getIsEmptyOrNull(text) {
+		return !text || text.trim().length === 0;
 	}
 }
 

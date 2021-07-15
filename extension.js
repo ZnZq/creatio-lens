@@ -4,6 +4,7 @@ const { ConstantHighlight } = require("./src/VSCodeWrapper/ConstantHighlight");
 const { ResourceHoverViewer } = require("./src/VSCodeWrapper/ResourceHoverViewer");
 const { SchemaTreeViewer } = require("./src/VSCodeWrapper/SchemaTreeViewer");
 const { ResourceTreeViewer } = require("./src/VSCodeWrapper/ResourceTreeViewer");
+const { RegionTreeViewer } = require("./src/VSCodeWrapper/RegionTreeViewer");
 const { UpdateDescriptor } = require("./src/VSCodeWrapper/UpdateDescriptor");
 
 /**
@@ -21,6 +22,7 @@ async function activate(context) {
 	new UpdateDescriptor();
 	new SchemaTreeViewer(context);
 	new ResourceTreeViewer(context);
+	new RegionTreeViewer(context);
 	new ConstantHighlight();
 
 	await initUpdate(context);
