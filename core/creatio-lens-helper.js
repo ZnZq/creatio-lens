@@ -5,10 +5,11 @@ const types = require("./typedef");
 const entities = require("html-entities");
 const traverse = require("@babel/traverse");
 const { Constants } = require("./creatio-lens-data");
+const _ = require("underscore");
 
 module.exports = {
 	/** @type {Object.<string, types.Resource>} */
-	resourceCache: {},
+	resourceObjectCache: {},
 
 	/**
 	 * @param {Object.<string, number>} object
@@ -111,35 +112,47 @@ module.exports = {
 	 * @returns {Array<{key: string; value: string}> | null}
 	 */
 	getResourseValue(config) {
-		if (!fs.existsSync(config.filePath) && (!config.resourceName || !config.line)) {
+		if (!config.resourceName && !config.line) {
 			return null;
 		}
 
 		var resourceName = config.resourceName;
-
 		if (!resourceName) {
 			resourceName = this.getResourceName(config.line, config.index || -1);
 		}
 
-		if (!resourceName) {
+		var resources = this.getResources(config.filePath);
+		if (!resources) {
 			return null;
 		}
 
-		var dir = path.dirname(config.filePath);
-		var fileName = path.basename(config.filePath, ".js");
+		var array = _.map(resources.cultures, (value, key) => {
+			return { key, value: value[resourceName] };
+		});
+
+		return array;
+	},
+
+	/**
+	 * @param {string} filePath
+	 * @returns {types.Resource}
+	 */
+	getResources(filePath) {
+		if (!fs.existsSync(filePath)) {
+			return null;
+		}
+
+		var dir = path.dirname(filePath);
+		var fileName = path.basename(filePath, ".js");
 		var descriptionTime = this.getDescriptorTime(dir);
 
 		if (!descriptionTime) {
 			return null;
 		}
 
-		var cache = this.resourceCache[config.filePath];
-
-		if (cache) {
-			var cacheTime = cache.time;
-			if (cacheTime === descriptionTime) {
-				return this.formatResourceValue(cache.resources[resourceName]);
-			}
+		var resourceObject = this.resourceObjectCache[filePath];
+		if (resourceObject && resourceObject.descriptorTime === descriptionTime) {
+			return resourceObject;
 		}
 
 		var resourceDir = path.normalize(`${dir}\\..\\..\\Resources\\${fileName}.ClientUnit`);
@@ -148,10 +161,9 @@ module.exports = {
 		}
 
 		var files = fs.readdirSync(resourceDir);
-
-		cache = {
-			time: descriptionTime,
-			resources: {}
+		var cache = {
+			descriptorTime: descriptionTime,
+			cultures: {}
 		};
 
 		const regex = /Name="LocalizableStrings\.(?<resourceName>\w+)\.Value" Value="(?<value>.*)"/gm;
@@ -164,28 +176,25 @@ module.exports = {
 			var matches = content.matchAll(regex);
 
 			for (var match of matches) {
-				var resource = match[1];
+				var resourceName = match[1];
+				var resourceValue = entities.decode(match[2]);
 
-				if (!cache.resources[resource]) {
-					cache.resources[resource] = {};
+				if (!cache.cultures[fileName]) {
+					cache.cultures[fileName] = {};
 				}
 
-				var value = entities.decode(match[2]);
-				if (cache.resources[resource][fileName] || value === "") {
-					continue;
-				}
-
-				cache.resources[resource][fileName] = value;
+				cache.cultures[fileName][resourceName] = resourceValue;
 			}
 		}
 
-		this.resourceCache[filePath] = cache;
-		return this.formatResourceValue(cache.resources[resourceName]);
+		this.resourceObjectCache[filePath] = cache;
+
+		return cache;
 	},
 
 	/**
-	 * @returns {Array<{key: string;value: string;}>}
 	 * @param {{ [x: string]: string; }} value
+	 * @returns {Array<{key: string;value: string;}>}
 	 */
 	formatResourceValue(value) {
 		if (!value) {

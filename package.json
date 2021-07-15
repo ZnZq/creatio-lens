@@ -2,7 +2,7 @@
 	"name": "creatio-lens",
 	"displayName": "Creatio Lens",
 	"description": "",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"publisher": "ZnZ",
 	"engines": {
 		"vscode": "^1.56.0"
@@ -23,28 +23,38 @@
 			{
 				"command": "schemaTreeViewer.reveal",
 				"title": "Schema Tree Viewer reveal"
+			},
+			{
+				"command": "resourceTreeViewer.refresh",
+				"title": "Refresh Resource Tree Viewer"
 			}
 		],
 		"views": {
-			"explorer": [
+			"creatio-exporer": [
 				{
 					"id": "SchemaTreeViewer",
 					"name": "Schema Tree Viewer"
+				},
+				{
+					"id": "ResourceTreeViewer",
+					"name": "Resource Tree Viewer"
 				}
 			]
 		},
-		"contributes": {
-			"javascript": {
-				"customData": [
-					"./constants.javascript-data.json"
-				]
-			}
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "creatio-exporer",
+					"title": "Creatio Exporer",
+					"icon": "./src/Icons/creatio-exporer.ico"
+				}
+			]
 		}
 	},
 	"repository": {
-        "type": "git",
-        "url": "https://github.com/ZnZq/creatio-lens.git"
-    },
+		"type": "git",
+		"url": "https://github.com/ZnZq/creatio-lens.git"
+	},
 	"scripts": {
 		"lint": "eslint .",
 		"pretest": "npm run lint",

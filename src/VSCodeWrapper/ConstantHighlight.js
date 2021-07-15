@@ -25,7 +25,12 @@ class ConstantHighlight {
 			this.draw();
 		});
 
-		this.ranges = [...vscode.window.activeTextEditor.visibleRanges];
+		
+		if (vscode.window.activeTextEditor) {
+			this.ranges = [...vscode.window.activeTextEditor.visibleRanges];
+		} else {
+			this.ranges = [];
+		}
 		this.draw();
 	}
 

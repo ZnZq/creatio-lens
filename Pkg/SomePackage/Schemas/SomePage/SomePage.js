@@ -1,4 +1,3 @@
-// @ts-nocheck
 define("SomePage", [
 	"SomePageResources",
 	"SomeConstants",
@@ -6,6 +5,7 @@ define("SomePage", [
 	"SomeMixin1",
 	"SomeMixin2",
 ], function(resources, constants, ServiceHelper) {
+
 	return {
 		entitySchemaName: "SomeEntity",
 		mixins: {
@@ -15,7 +15,8 @@ define("SomePage", [
 		attributes: {
 			"SomeAttribute1": {
 				"dataValueType": 12,
-				"value": false
+				"value": false,
+				
 			}
 		},
 		messages: {

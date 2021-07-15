@@ -1,9 +1,9 @@
 const vscode = require("vscode");
 const core = require("./core/creatio-lens-core");
-const { CompleteViewer } = require("./src/VSCodeWrapper/CompleteViewer");
 const { ConstantHighlight } = require("./src/VSCodeWrapper/ConstantHighlight");
 const { ResourceHoverViewer } = require("./src/VSCodeWrapper/ResourceHoverViewer");
 const { SchemaTreeViewer } = require("./src/VSCodeWrapper/SchemaTreeViewer");
+const { ResourceTreeViewer } = require("./src/VSCodeWrapper/ResourceTreeViewer");
 const { UpdateDescriptor } = require("./src/VSCodeWrapper/UpdateDescriptor");
 
 /**
@@ -20,10 +20,10 @@ async function activate(context) {
 	new ResourceHoverViewer();
 	new UpdateDescriptor();
 	new SchemaTreeViewer(context);
+	new ResourceTreeViewer(context);
 	new ConstantHighlight();
-	new CompleteViewer(context);
 
-	await initUpdateAST(context);
+	await initUpdate(context);
 }
 
 function deactivate() {
@@ -33,10 +33,9 @@ function deactivate() {
 /**
  * @param {vscode.ExtensionContext} context
  */
-async function initUpdateAST(context) {
+async function initUpdate(context) {
 	const editor = vscode.window.activeTextEditor;
 	var isValid = editor?.document?.languageId === "javascript";
-
 	if (isValid) {
 		await core.updateAST(editor.document.uri.fsPath, editor.document.getText());
 	}
@@ -58,14 +57,15 @@ async function initUpdateAST(context) {
 		await core.updateAST(null, null);
 	}, null, context.subscriptions);
 
-	vscode.window.onDidChangeActiveTextEditor(async editor => {
+	vscode.window.onDidChangeActiveTextEditor(editor => {
 		var isValid = editor?.document?.languageId === "javascript";
 
 		if (isValid) {
-			return await core.updateAST(editor.document.uri.fsPath, editor.document.getText());
+			core.updateAST(editor.document.uri.fsPath, editor.document.getText());
+			return;
 		}
 
-		await core.updateAST(null, null);
+		core.updateAST(null, null);
 	}, null, context.subscriptions);
 }
 

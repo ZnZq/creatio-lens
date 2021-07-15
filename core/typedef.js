@@ -6,8 +6,8 @@ const traverse = require("@babel/traverse");
 
 /**
  * @typedef {object} Resource
- * @property {string} time
- * @property {Object.<string, Object.<string, string>>} resources
+ * @property {string} descriptorTime
+ * @property {Object.<string, Object.<string, string>>} cultures
  */
 
 /**

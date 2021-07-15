@@ -18,9 +18,11 @@ class CreatioLensCore {
 	onAfterUpdateAST = null;
 
 	/** @type {Subject} */
+	onResourcesUpdated = null;
+
+	/** @type {Subject} */
 	onError = null;
 
-	/** @type {babelTypes.File} */
 	ast = null;
 
 	/** @type {string} */
@@ -37,6 +39,7 @@ class CreatioLensCore {
 		this.resourceCache = {};
 		this.onBeforeUpdateAST = new Subject();
 		this.onAfterUpdateAST = new Subject();
+		this.onResourcesUpdated = new Subject();
 		this.onError = new Subject();
 	}
 
@@ -44,6 +47,7 @@ class CreatioLensCore {
 		this.resourceCache = null;
 		this.onBeforeUpdateAST.complete();
 		this.onAfterUpdateAST.complete();
+		this.onResourcesUpdated.complete();
 		this.onError.complete();
 	}
 
@@ -292,7 +296,15 @@ class CreatioLensCore {
 			const data = fs.readFileSync(descriptorFile);
 			const json = data.toString("utf8").trim();
 			const jsonData = JSON.parse(json);
-			jsonData.Descriptor.ModifiedOnUtc = `\\/Date(${new Date().getTime()})\\/`;
+
+			if (jsonData.Descriptor) {
+				jsonData.Descriptor.ModifiedOnUtc = `\\/Date(${new Date().getTime()})\\/`;
+			} else if (jsonData.SqlScript) {
+				jsonData.SqlScript.ModifiedOnUtc = `\\/Date(${new Date().getTime()})\\/`;
+			} else {
+				return;
+			}
+
 			const newJson = JSON.stringify(jsonData, null, "  ").replace(/\\\\/g, "\\");
 
 			fs.writeFileSync(descriptorFile, newJson, { encoding: "utf8" });
@@ -327,25 +339,19 @@ class CreatioLensCore {
 	}
 
 	/**
-	 * @param {string} pattern
-	 * @param {string} line
-	 * @param {Object.<string, number>} data
-	 * @returns {Array<string>}
+	 * @param {string} filePath 
 	 */
-	completionItems(pattern, line, data) {
-		const regex = new RegExp(`${pattern.replace(".", "\\.")}(?<filter>\w+)?`);
-		var m = regex.exec(line);
+	updateResourcesList(filePath) {
+		var resources = helper.getResources(filePath);
 
-		if (!m) {
-			return [];
-		}
+		this.onResourcesUpdated.next(resources);
+	}
 
-		var filter = m.groups.filter || "";
-		var items = Object.keys(data).filter(
-			item => item.toLowerCase().startsWith(filter.toLowerCase())
-		);
-
-		return items;
+	/**
+	 * @param {string} filePath 
+	 */
+	getResources(filePath) {
+		return helper.getResources(filePath);
 	}
 }
 
