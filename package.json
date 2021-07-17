@@ -4,7 +4,7 @@
 	"description": "",
 	"version": "0.0.4",
 	"publisher": "ZnZ",
-	"icon": "./Resources/Icons/logo.png",
+	"icon": "Resources/Icons/logo.png",
 	"engines": {
 		"vscode": "^1.56.0"
 	},
