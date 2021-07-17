@@ -1,4 +1,5 @@
 const vscode = require("vscode");
+const path = require("path");
 const types = require("../../core/typedef");
 const babelTypes = require("@babel/types");
 const core = require("../../core/creatio-lens-core");
@@ -24,6 +25,7 @@ class ResourceTreeItem extends vscode.TreeItem {
 		return _.map(this.resources, (value, key) => {
 			var item = new vscode.TreeItem(value);
 			item.tooltip = key;
+			item.contextValue = "resource";
 
 			return item;
 		});
@@ -51,13 +53,36 @@ class ResourceTreeViewer {
 			treeDataProvider: this
 		}));
 
-		vscode.commands.registerCommand("resourceTreeViewer.refresh", async () => {
-			this.refresh();
+		vscode.commands.registerCommand("resourceTreeViewer.refresh", () => {
+			const editor = vscode.window.activeTextEditor;
+			core.updateResourcesList(editor?.document?.uri?.fsPath);
+		});
+
+		vscode.commands.registerCommand("resourceTreeViewer.resourcesStrings", (item) => {
+			var value = `Resources.Strings.${item.tooltip}`;
+			vscode.env.clipboard.writeText(value);
+			vscode.window.showInformationMessage(`Скопировано: ${value}`);
+		});
+
+		vscode.commands.registerCommand("resourceTreeViewer.localizableStrings", (item) => {
+			var value = `resources.localizableStrings.${item.tooltip}`;
+			vscode.env.clipboard.writeText(value);
+			vscode.window.showInformationMessage(`Скопировано: ${value}`);
+		});
+
+		vscode.commands.registerCommand("resourceTreeViewer.connectionLocalizableStrings", (item) => {
+			const editor = vscode.window.activeTextEditor;
+			var filePath = editor?.document?.uri?.fsPath;
+			var fileExt = path.extname(filePath);
+			var fileName = path.basename(filePath, fileExt);
+
+			var value = `UserConnection.GetLocalizableString("${fileName}", "${item.tooltip}")`;
+			vscode.env.clipboard.writeText(value);
+			vscode.window.showInformationMessage(`Скопировано: ${value}`);
 		});
 
 		vscode.window.onDidChangeActiveTextEditor(editor => {
-			var isValid = editor?.document?.languageId === "javascript";
-			if (isValid) {
+			if (editor?.document?.uri?.scheme === "file") {
 				core.updateResourcesList(editor.document.uri.fsPath);
 				return;
 			}

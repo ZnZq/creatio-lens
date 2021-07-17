@@ -130,7 +130,7 @@ module.exports = {
 			return { key, value: value[resourceName] };
 		});
 
-		return array;
+		return array.filter(values => values.value !== undefined);
 	},
 
 	/**
@@ -143,7 +143,8 @@ module.exports = {
 		}
 
 		var dir = path.dirname(filePath);
-		var fileName = path.basename(filePath, ".js");
+		var fileExt = path.extname(filePath);
+		var fileName = path.basename(filePath, fileExt);
 		var descriptionTime = this.getDescriptorTime(dir);
 
 		if (!descriptionTime) {
@@ -155,7 +156,8 @@ module.exports = {
 			return resourceObject;
 		}
 
-		var resourceDir = path.normalize(`${dir}\\..\\..\\Resources\\${fileName}.ClientUnit`);
+		var resourceTag = this.getResourceTag(fileExt);
+		var resourceDir = path.normalize(`${dir}\\..\\..\\Resources\\${fileName}.${resourceTag}`);
 		if (!fs.existsSync(resourceDir)) {
 			return null;
 		}
@@ -190,6 +192,17 @@ module.exports = {
 		this.resourceObjectCache[filePath] = cache;
 
 		return cache;
+	},
+
+	/**
+	 * @param {string} ext 
+	 */
+	getResourceTag(ext) {
+		switch(ext.toLocaleLowerCase()) {
+			case ".cs": return "SourceCode";
+			case ".js": return "ClientUnit";
+			default: return "Unknown";
+		}
 	},
 
 	/**

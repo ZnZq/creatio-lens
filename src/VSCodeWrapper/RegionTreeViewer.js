@@ -65,16 +65,14 @@ class RegionTreeViewer {
 			}
 
 			var start = new vscode.Position(
-				location.start.line - 1,
-				location.start.column,
+				location.start.line - 1, location.start.column,
 			);
 			var end = new vscode.Position(
-				location.end.line - 1,
-				location.end.column,
+				location.end.line - 1, location.end.column,
 			);
 
 			editor.selection = new vscode.Selection(start, end);
-			editor.revealRange(editor.selection, vscode.TextEditorRevealType.AtTop);
+			editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
 		});
 
 		core.onAfterUpdateAST.subscribe(() => this.refresh());

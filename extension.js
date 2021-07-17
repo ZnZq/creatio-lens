@@ -11,8 +11,9 @@ const { UpdateDescriptor } = require("./src/VSCodeWrapper/UpdateDescriptor");
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-	console.log("Congratulations, your extension \"creatio-lens\" is now active!");
+	console.log("Congratulations, extension \"creatio-lens\" is now active!");
 	await core.activate();
+	initConfiguration(context);
 	core.onError.subscribe(error => {
 		vscode.window.showErrorMessage(error.toString());
 		console.error(error);
@@ -30,6 +31,32 @@ async function activate(context) {
 
 function deactivate() {
 	core.deactivate();
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function initConfiguration(context) {
+	function applyConfiguration() {
+		let configuration = vscode.workspace.getConfiguration('creatio-lens');
+
+		core.resetConfig();
+		core.applyConfig({
+			descriptor: configuration.descriptor,
+			schema: configuration.schema,
+			highlight: configuration.highlight,
+			resource: configuration.resource,
+			region: configuration.region
+		});
+	}
+
+	applyConfiguration();
+
+	vscode.workspace.onDidChangeConfiguration(async event => {
+		if (event.affectsConfiguration('creatio-lens')) {
+			applyConfiguration();
+		}
+	}, null, context.subscriptions);
 }
 
 /**

@@ -4,6 +4,7 @@
 	"description": "",
 	"version": "0.0.4",
 	"publisher": "ZnZ",
+	"icon": "./Resources/Icons/logo.png",
 	"engines": {
 		"vscode": "^1.56.0"
 	},
@@ -18,7 +19,8 @@
 		"commands": [
 			{
 				"command": "schemaTreeViewer.refresh",
-				"title": "Refresh Schema Tree Viewer"
+				"title": "Refresh Schema Tree Viewer",
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "schemaTreeViewer.reveal",
@@ -26,15 +28,29 @@
 			},
 			{
 				"command": "resourceTreeViewer.refresh",
-				"title": "Refresh Resource Tree Viewer"
+				"title": "Refresh Resource Tree Viewer",
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "regionTreeViewer.refresh",
-				"title": "Refresh Region Tree Viewer"
+				"title": "Refresh Region Tree Viewer",
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "regionTreeViewer.reveal",
 				"title": "Region Viewer Reveal"
+			},
+			{
+				"command": "resourceTreeViewer.resourcesStrings",
+				"title": "Копировать как Resources.Strings..."
+			},
+			{
+				"command": "resourceTreeViewer.localizableStrings",
+				"title": "Копировать как resources.localizableStrings..."
+			},
+			{
+				"command": "resourceTreeViewer.connectionLocalizableStrings",
+				"title": "Копировать как UserConnection.GetLocalizableString..."
 			}
 		],
 		"views": {
@@ -58,9 +74,90 @@
 				{
 					"id": "creatio-exporer",
 					"title": "Creatio Exporer",
-					"icon": "./src/Icons/creatio-exporer.ico"
+					"icon": "./Resources/Icons/logo.svg"
 				}
 			]
+		},
+		"menus": {
+			"view/title": [
+				{
+					"command": "schemaTreeViewer.refresh",
+					"when": "view == SchemaTreeViewer",
+					"group": "navigation"
+				},
+				{
+					"command": "resourceTreeViewer.refresh",
+					"when": "view == ResourceTreeViewer",
+					"group": "navigation"
+				},
+				{
+					"command": "regionTreeViewer.refresh",
+					"when": "view == RegionTreeViewer",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "resourceTreeViewer.resourcesStrings",
+					"when": "view == ResourceTreeViewer && viewItem == resource"
+				},
+				{
+					"command": "resourceTreeViewer.localizableStrings",
+					"when": "view == ResourceTreeViewer && viewItem == resource"
+				},
+				{
+					"command": "resourceTreeViewer.connectionLocalizableStrings",
+					"when": "view == ResourceTreeViewer && viewItem == resource"
+				}
+			]
+		},
+		"configuration": {
+			"title": "CreatioLens",
+			"properties": {
+				"creatio-lens.descriptor": {
+					"type": "boolean",
+					"default": true,
+					"description": "Update descriptor.json on save"
+				},
+				"creatio-lens.schema": {
+					"type": "boolean",
+					"default": true,
+					"description": "Build the schema structure"
+				},
+				"creatio-lens.resource": {
+					"type": "boolean",
+					"default": true,
+					"description": "Build the resource structure"
+				},
+				"creatio-lens.region": {
+					"type": [
+						"object",
+						"null"
+					],
+					"description": "Build the region structure",
+					"properties": {
+						"rules": {
+							"type": "array",
+							"default": [
+								{
+									"beginRegex": "#region(:?\\s+(?<name>.*))?",
+									"endRegex": "#endregion"
+								},
+								{
+									"beginRegex": "@Region(:?\\s+(?<name>.*))?",
+									"endRegex": "@EndRegion"
+								}
+							],
+							"description": "Region detection rules"
+						}
+					}
+				},
+				"creatio-lens.highlight": {
+					"type": "boolean",
+					"default": true,
+					"description": "Highlight numeric constants"
+				}
+			}
 		}
 	},
 	"repository": {
@@ -86,6 +183,7 @@
 	"dependencies": {
 		"@babel/parser": "^7.14.3",
 		"@babel/traverse": "^7.14.2",
+		"deepmerge": "^4.2.2",
 		"html-entities": "^2.3.2",
 		"threads": "^1.6.4",
 		"underscore": "^1.13.1"

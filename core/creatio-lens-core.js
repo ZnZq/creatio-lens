@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const { Terrasoft, BusinessRuleEnum } = require("./creatio-lens-data");
 const _ = require("underscore");
+const merge = require('deepmerge')
 
 class CreatioLensCore {
 	/** @type {Subject} */
@@ -35,25 +36,11 @@ class CreatioLensCore {
 	/** @type {import("threads").FunctionThread<any, any> & import("threads/dist/types/master").ModuleProxy<any> & import("threads/dist/types/master").PrivateThreadProps} */
 	astWalker = null;
 
-	/** @type {{regions: Array<{beginRegex: string, endRegex: string}>, allRegexs: Array<string>}} */
-	regionConfig = {
-		regions: [],
-		allRegexs: []
-	};
+	/** @type {types.DefaultConfig} */
+	config = null;
 
 	async activate() {
-		this.setRegionConfig({
-			regions: [
-				{
-					beginRegex: "(\\s+)?#region(:?\\s+(?<name>.*))?",
-					endRegex: "(\\s+)?#endregion"
-				},
-				{
-					beginRegex: "\\*\\s+@Region(:?\\s+(?<name>.*))?",
-					endRegex: "\\*\\s+@EndRegion"
-				}
-			]
-		});
+		this.resetConfig();
 		this.astWalker = await spawn(new Worker("./creatio-lens-ast-walker"));
 		this.resourceCache = {};
 		this.onBeforeUpdateAST = new Subject();
@@ -70,9 +57,33 @@ class CreatioLensCore {
 		this.onError.complete();
 	}
 
+	/**
+	 * @param {types.DefaultConfig} config 
+	 */
+	setConfig(config) {
+		this.config = { ...config };
+	}
+
+	/**
+	 * @param {types.DefaultConfig} config 
+	 */
+	applyConfig(config) {
+		this.config = merge(types.DefaultConfig, config, {
+			arrayMerge: (_target, source, _options) => source
+		});
+	}
+
+	resetConfig() {
+		this.config = { ...types.DefaultConfig };
+	}
+
 	/** @returns {Promise<Array<types.SchemaItem | object>>} */
 	async getSchemaTreeRoots() {
 		try {
+			if (!this.config.schema) {
+				return [];
+			}
+
 			return [
 				await this.getDependencyRoot(),
 				await this.getMixinRoot(),
@@ -300,7 +311,7 @@ class CreatioLensCore {
 	 * @param {string} filePath
 	 */
 	updateDescriptor(filePath) {
-		if (this.updatingDescriptor[filePath]) {
+		if (!this.config.descriptor || this.updatingDescriptor[filePath]) {
 			return;
 		}
 		this.updatingDescriptor[filePath] = true;
@@ -343,6 +354,10 @@ class CreatioLensCore {
 
 	/** @returns {Array<types.HighlightRule>} */
 	getHighlightRule() {
+		if (!this.config.highlight) {
+			return [];
+		}
+
 		return [
 			new types.HighlightRule({ attribute: "itemType", constantMap: Terrasoft.ViewItemType }),
 			new types.HighlightRule({ attribute: "comparisonType", constantMap: Terrasoft.ComparisonType }),
@@ -361,7 +376,7 @@ class CreatioLensCore {
 	 * @param {string} filePath 
 	 */
 	updateResourcesList(filePath) {
-		var resources = helper.getResources(filePath);
+		var resources = this.getResources(filePath);
 
 		this.onResourcesUpdated.next(resources);
 	}
@@ -370,6 +385,10 @@ class CreatioLensCore {
 	 * @param {string} filePath 
 	 */
 	getResources(filePath) {
+		if (!this.config.resource) {
+			return null;
+		}
+
 		return helper.getResources(filePath);
 	}
 
@@ -379,7 +398,7 @@ class CreatioLensCore {
 	getRegions() {
 		var regions = [];
 
-		if (!this.ast || !this.ast.comments) {
+		if (!this.config.region || !this.ast || !this.ast.comments) {
 			return regions;
 		}
 
@@ -418,17 +437,6 @@ class CreatioLensCore {
 		return regions;
 	}
 
-	/**
-	 * @param {{regions: Array<{beginRegex: string, endRegex: string}>}} config 
-	 */
-	setRegionConfig(config) {
-		this.regionConfig = {
-			regions: config.regions,
-			// @ts-ignore
-			allRegexs: config.regions.map(el => [el.beginRegex, el.endRegex]).flat()
-		};
-	}
-
 	prepareRegion(text) {
 		if (!this.getIsRegion(text)) {
 			return { isRegion: false };
@@ -442,7 +450,10 @@ class CreatioLensCore {
 	}
 
 	getIsRegion(text) {
-		return this.regionConfig.allRegexs.some(regex => new RegExp(regex, "gmi").test(text));
+		// @ts-ignore
+		var allRegex = this.config.region.rules.map(el => [el.beginRegex, el.endRegex]).flat();
+
+		return allRegex.some(regex => new RegExp(regex, "gmi").test(text));
 	}
 
 	getRegionType(text) {
@@ -454,7 +465,7 @@ class CreatioLensCore {
 	}
 	
 	getRegionName(text) {
-		var match = this.regionConfig.regions
+		var match = this.config.region.rules
 			.map(region => new RegExp(region.beginRegex, "gmi").exec(text))
 			.find(match => match != null);
 
@@ -466,11 +477,11 @@ class CreatioLensCore {
 	}
 
 	getIsRegionStart(text) {
-		return this.regionConfig.regions.some(region => new RegExp(region.beginRegex, "gmi").test(text));
+		return this.config.region.rules.some(region => new RegExp(region.beginRegex, "gmi").test(text));
 	}
 
 	getIsRegionEnd(text) {
-		return this.regionConfig.regions.some(region => new RegExp(region.endRegex, "gmi").test(text));;
+		return this.config.region.rules.some(region => new RegExp(region.endRegex, "gmi").test(text));;
 	}
 
 	/**

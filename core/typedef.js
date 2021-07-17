@@ -1003,6 +1003,29 @@ const RegionType = {
 
 /** @EndRegion Region */
 
+/** @Region: Config */
+
+const DefaultConfig = {
+	descriptor: true,
+	schema: true,
+	resource: true,
+	region: {
+		rules: [
+			{
+				"beginRegex": "#region(:?\\s+(?<name>.*))?",
+				"endRegex": "#endregion"
+			},
+			{
+				"beginRegex": "@Region(:?\\s+(?<name>.*))?",
+				"endRegex": "@EndRegion"
+			}
+		]
+	},
+	highlight: true,
+}
+
+/** @EndRegion: Config */
+
 /**
  * @param {{ type: string; }} object
  */
@@ -1030,4 +1053,5 @@ module.exports = {
 	MethodRootItem,
 	Region,
 	RegionType,
+	DefaultConfig
 };
